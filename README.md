@@ -36,7 +36,9 @@ cp .env.example .env                                  # defaults to offline "moc
 uvicorn app.main:app --port 8000 --env-file .env
 ```
 
-Try it:
+Try it in the browser at <http://localhost:8000>: type a message and see what
+you wrote, what the LLM saw and what came back. The page uses `/debug/sanitize`,
+so it needs `ENABLE_DEBUG=true`. Or from the command line:
 
 ```bash
 # See exactly what the LLM would receive

@@ -53,6 +53,11 @@ def chat(client, text, **extra):
     return client.post(URL, json={"model": "x", "messages": [{"role": "user", "content": text}], **extra})
 
 
+def test_demo_page_is_served(client):
+    r = client.get("/")
+    assert r.status_code == 200 and "text/html" in r.headers["content-type"]
+
+
 # ---------------------------------------------------------------- core flow
 def test_pii_never_reaches_llm(client, fake_llm):
     r = chat(client, "Email Rahul Sharma at rahul.s@gmail.com or call 9876543210")

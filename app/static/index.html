@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PII-Safe LLM Gateway</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f6f7f9; --card: #ffffff; --text: #1a1d23; --muted: #5f6877; --line: #dde1e7;
+    --accent: #2456c9; --accent-text: #ffffff;
+    --mark-bg: #e4ecff; --mark-text: #1c409a;
+    --danger-bg: #fdecec; --danger-text: #a01919;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a; --card: #1d2026; --text: #e8eaee; --muted: #9aa3b1; --line: #30353e;
+      --accent: #7ba0f5; --accent-text: #10131a;
+      --mark-bg: #26365f; --mark-text: #c4d4ff;
+      --danger-bg: #43201f; --danger-text: #ffb4ae;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 1080px; margin: 0 auto; padding: 32px 16px 48px; }
+  h1 { margin: 0; font-size: 1.6rem; line-height: 1.25; }
+  .lead { margin: 6px 0 24px; color: var(--muted); }
+  label { display: block; margin-bottom: 6px; font-weight: 600; }
+  textarea {
+    display: block; width: 100%; min-height: 96px; padding: 12px; resize: vertical;
+    border: 1px solid var(--line); border-radius: 8px;
+    background: var(--card); color: var(--text); font: inherit;
+  }
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+  button {
+    padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--card); color: var(--text); font: inherit; font-size: .9rem; cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  :is(button, textarea):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #send {
+    margin-left: auto; padding: 8px 20px; border-color: var(--accent);
+    background: var(--accent); color: var(--accent-text); font-weight: 600;
+  }
+  #send:disabled { opacity: .6; cursor: wait; }
+  #banner {
+    margin: 20px 0 0; padding: 12px 14px; border-radius: 8px;
+    background: var(--danger-bg); color: var(--danger-text); font-weight: 600;
+  }
+  .panels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
+  @media (max-width: 800px) { .panels { grid-template-columns: 1fr; } }
+  section { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
+  h2 { margin: 0 0 8px; font-size: .95rem; }
+  .output { margin: 0; min-height: 3em; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .empty { color: var(--muted); }
+  .meta { margin: 10px 0 0; color: var(--muted); font-size: .85rem; overflow-wrap: anywhere; }
+  mark { padding: 1px 4px; border-radius: 4px; background: var(--mark-bg); color: var(--mark-text); font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <h1>PII-Safe LLM Gateway</h1>
+  <p class="lead">Personal data is masked before it reaches the model, then restored in the answer.</p>
+
+  <form id="form">
+    <label for="input">Your message</label>
+    <textarea id="input">Write a two-line reminder to Rahul Sharma (rahul.s@gmail.com), phone 9876543210.</textarea>
+    <div class="controls" id="samples">
+      <button type="button" data-text="Write a two-line reminder to Rahul Sharma (rahul.s@gmail.com), phone 9876543210.">Name, email, phone</button>
+      <button type="button" data-text="Verify Aadhaar 4987 1234 5679">Aadhaar</button>
+      <button type="button" data-text="Charge card 4111 1111 1111 1111">Credit card</button>
+      <button type="button" data-text="Explain how binary search works in one sentence.">No personal data</button>
+      <button type="submit" id="send">Send</button>
+    </div>
+  </form>
+
+  <p id="banner" role="alert" hidden></p>
+
+  <div class="panels" aria-live="polite">
+    <section>
+      <h2>1. You wrote</h2>
+      <p class="output empty" id="wrote">Nothing sent yet.</p>
+    </section>
+    <section>
+      <h2>2. The LLM saw</h2>
+      <p class="output empty" id="saw">Nothing sent yet.</p>
+      <p class="meta" id="found"></p>
+    </section>
+    <section>
+      <h2>3. You got back</h2>
+      <p class="output empty" id="got">Nothing sent yet.</p>
+      <p class="meta" id="stats"></p>
+    </section>
+  </div>
+</main>
+
+<script>
+  const el = (id) => document.getElementById(id);
+
+  // textContent only: model output must never be parsed as HTML.
+  function show(id, text, empty = false) {
+    el(id).textContent = text;
+    el(id).classList.toggle("empty", empty);
+  }
+
+  function showMasked(id, text) {
+    const target = el(id);
+    target.replaceChildren();
+    target.classList.remove("empty");
+    text.split(/(<[A-Z][A-Z_]*_\d+>)/).forEach((part, i) => {
+      if (i % 2) {
+        const mark = document.createElement("mark");
+        mark.textContent = part;
+        target.append(mark);
+      } else {
+        target.append(part);
+      }
+    });
+  }
+
+  function showBanner(message) {
+    el("banner").textContent = message;
+    el("banner").hidden = false;
+  }
+
+  async function post(path, body) {
+    const response = await fetch(path, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    return { response, data: await response.json().catch(() => ({})) };
+  }
+
+  const failure = ({ response, data }) => data.error?.message || `Request failed (${response.status})`;
+
+  async function send(event) {
+    event.preventDefault();
+    const text = el("input").value.trim();
+    if (!text) return;
+    const messages = [{ role: "user", content: text }];
+
+    el("send").disabled = true;
+    el("banner").hidden = true;
+    el("found").textContent = el("stats").textContent = "";
+    show("wrote", text);
+    show("saw", "Checking…", true);
+    show("got", "Waiting…", true);
+
+    try {
+      const sanitized = await post("/debug/sanitize", { messages });
+      if (!sanitized.response.ok) throw new Error(failure(sanitized));
+
+      if (sanitized.data.blocked) {
+        showBanner(`Blocked: contains ${sanitized.data.entity_types.join(", ")}. Nothing was sent to the LLM.`);
+        show("saw", "Nothing. The request was stopped at the gateway.", true);
+        show("got", "No answer, because nothing was sent.", true);
+        return;
+      }
+
+      showMasked("saw", sanitized.data.sent_to_llm[0].content);
+      const types = [...new Set(sanitized.data.entity_types)];
+      el("found").textContent = types.length ? `Masked: ${types.join(", ")}` : "No personal data found";
+
+      const chat = await post("/v1/chat/completions", { model: "any", messages });
+      if (!chat.response.ok) throw new Error(failure(chat));
+
+      show("got", chat.data.choices[0].message.content ?? "");
+      const latency = chat.response.headers.get("x-gateway-latency-ms");
+      el("stats").textContent = `Model: ${chat.data.model}` + (latency ? ` · Gateway time: ${latency} ms` : "");
+    } catch (error) {
+      showBanner(error.message);
+      if (el("got").classList.contains("empty")) show("got", "No answer.", true);
+      if (el("saw").textContent === "Checking…") show("saw", "Nothing was sent.", true);
+    } finally {
+      el("send").disabled = false;
+    }
+  }
+
+  el("form").addEventListener("submit", send);
+  el("samples").addEventListener("click", (event) => {
+    if (event.target.dataset.text) {
+      el("input").value = event.target.dataset.text;
+      el("form").requestSubmit();
+    }
+  });
+</script>
+</body>
+</html>

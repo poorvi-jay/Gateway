@@ -14,10 +14,11 @@ import secrets
 import time
 import uuid
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response
 
 from .audit import audit
 from .detector import Detector
@@ -91,6 +92,11 @@ async def read_body(request: Request) -> dict | None:
     if isinstance(payload, dict) and isinstance(payload.get("messages"), list):
         return payload
     return None
+
+
+@app.get("/", include_in_schema=False)
+async def demo_page():
+    return FileResponse(Path(__file__).parent / "static" / "index.html")
 
 
 @app.get("/health")
