@@ -1,0 +1,40 @@
+{"text": "Please send the invoice to Rahul Sharma at rahul.sharma@gmail.com.", "pii": [["PERSON", "Rahul Sharma"], ["EMAIL_ADDRESS", "rahul.sharma@gmail.com"]]}
+{"text": "Call Anjali Mehta on 9876543210 before 5pm.", "pii": [["PERSON", "Anjali Mehta"], ["IN_PHONE", "9876543210"]]}
+{"text": "My number is +91 98450 12345, WhatsApp me.", "pii": [["IN_PHONE", "+91 98450 12345"]]}
+{"text": "Transfer the refund to priya.n@okaxis today.", "pii": [["UPI_ID", "priya.n@okaxis"]]}
+{"text": "Customer Aadhaar: 4987 1234 5679, please verify KYC.", "pii": [["IN_AADHAAR", "4987 1234 5679"]]}
+{"text": "PAN of the applicant is BNZPM2501F.", "pii": [["IN_PAN", "BNZPM2501F"]]}
+{"text": "Charge the card 4111 1111 1111 1111 for the subscription.", "pii": [["CREDIT_CARD", "4111 1111 1111 1111"]]}
+{"text": "Login attempts came from 203.0.113.45 last night.", "pii": [["IP_ADDRESS", "203.0.113.45"]]}
+{"text": "Vikram Rao lives in Mysuru and works in Bengaluru.", "pii": [["PERSON", "Vikram Rao"], ["LOCATION", "Mysuru"], ["LOCATION", "Bengaluru"]]}
+{"text": "Draft a rejection email to Sneha Kulkarni (sneha.k@yahoo.in).", "pii": [["PERSON", "Sneha Kulkarni"], ["EMAIL_ADDRESS", "sneha.k@yahoo.in"]]}
+{"text": "Ticket raised by Mohammed Irfan, contact 7019283746.", "pii": [["PERSON", "Mohammed Irfan"], ["IN_PHONE", "7019283746"]]}
+{"text": "Summarise the complaint from Kavya Reddy about the late delivery.", "pii": [["PERSON", "Kavya Reddy"]]}
+{"text": "Aadhaar 560022331148 linked to mobile 8123456789.", "pii": [["IN_AADHAAR", "560022331148"], ["IN_PHONE", "8123456789"]]}
+{"text": "Pay Rs 500 to arjun99@ybl for the tickets.", "pii": [["UPI_ID", "arjun99@ybl"]]}
+{"text": "The suspicious transaction was from card 5555 5555 5555 4444.", "pii": [["CREDIT_CARD", "5555 5555 5555 4444"]]}
+{"text": "Meera Iyer reported that her account was locked.", "pii": [["PERSON", "Meera Iyer"]]}
+{"text": "Escalate to the manager, Suresh Patil, at suresh.patil@acme.co.in.", "pii": [["PERSON", "Suresh Patil"], ["EMAIL_ADDRESS", "suresh.patil@acme.co.in"]]}
+{"text": "Server at 10.0.4.17 is leaking logs to 198.51.100.7.", "pii": [["IP_ADDRESS", "10.0.4.17"], ["IP_ADDRESS", "198.51.100.7"]]}
+{"text": "Write a birthday message for my colleague Deepak.", "pii": [["PERSON", "Deepak"]]}
+{"text": "Ship the parcel to Rohan Gupta in Pune.", "pii": [["PERSON", "Rohan Gupta"], ["LOCATION", "Pune"]]}
+{"text": "Verify PAN AAACR5055K for the company filing.", "pii": [["IN_PAN", "AAACR5055K"]]}
+{"text": "Her Aadhaar number is 8734-1209-8763.", "pii": [["IN_AADHAAR", "8734-1209-8763"]]}
+{"text": "Reach Fatima Sheikh on 09900112233 for the interview.", "pii": [["PERSON", "Fatima Sheikh"], ["IN_PHONE", "09900112233"]]}
+{"text": "Ask Lakshmi Narayanan to review the PR.", "pii": [["PERSON", "Lakshmi Narayanan"]]}
+{"text": "Send the OTP issue logs to ops-team@trench.dev.", "pii": [["EMAIL_ADDRESS", "ops-team@trench.dev"]]}
+{"text": "John Mathew from Chennai called about his loan.", "pii": [["PERSON", "John Mathew"], ["LOCATION", "Chennai"]]}
+{"text": "Collect payment via UPI at nisha.k@oksbi.", "pii": [["UPI_ID", "nisha.k@oksbi"]]}
+{"text": "Arvind's phone 6301234567 has been switched off.", "pii": [["PERSON", "Arvind"], ["IN_PHONE", "6301234567"]]}
+{"text": "Translate this note for Ms. Gupta into Hindi.", "pii": [["PERSON", "Gupta"]]}
+{"text": "Pooja and Karthik will present the demo on Friday.", "pii": [["PERSON", "Pooja"], ["PERSON", "Karthik"]]}
+{"text": "Explain how binary search works with an example.", "pii": []}
+{"text": "Write a SQL query to find the top 5 customers by revenue.", "pii": []}
+{"text": "Order 2341 2341 2345 was shipped on 12 March.", "pii": []}
+{"text": "What is the difference between TCP and UDP?", "pii": []}
+{"text": "The meeting is at 3pm in conference room B.", "pii": []}
+{"text": "Our Q3 revenue grew by 18 percent to 4.2 crore.", "pii": []}
+{"text": "Summarise the attached incident report in three bullet points.", "pii": []}
+{"text": "Refactor this Python function to use list comprehensions.", "pii": []}
+{"text": "Version 2.4.1 fixed the memory leak in the parser.", "pii": []}
+{"text": "Give me five tips to improve my resume.", "pii": []}
