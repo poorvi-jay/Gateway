@@ -109,7 +109,9 @@ class UpiRecognizer(PatternRecognizer):
             patterns=[
                 Pattern(
                     "upi",
-                    r"\b[a-zA-Z0-9._-]{2,256}@[a-zA-Z]{2,64}\b(?![.\w@])",
+                    # not followed by ".com"-style domain (that's an email),
+                    # but a sentence-ending full stop is fine
+                    r"\b[a-zA-Z0-9._-]{2,256}@[a-zA-Z]{2,64}\b(?![\w@])(?!\.\w)",
                     0.6,
                 )
             ],
