@@ -144,3 +144,20 @@ async def chat_completions(request: Request):
           entities_out=resp_entities, latency_ms=gateway_ms)
     return JSONResponse(final, headers={"x-gateway-request-id": rid,
                                         "x-gateway-latency-ms": f"{gateway_ms:.1f}"})
+
+
+@app.post("/debug/sanitize")
+async def debug_sanitize(request: Request):
+    """Shows exactly what the LLM would receive. For demos only - disable in
+    production (set ENABLE_DEBUG=false)."""
+    if os.getenv("ENABLE_DEBUG", "true").lower() != "true":
+        return error(404, "Not found", "not_found")
+    if not check_auth(request):
+        return error(401, "Invalid gateway API key", "unauthorized")
+    payload = await request.json()
+    try:
+        result = sanitize_request(payload, request.app.state.detector, request.app.state.policy)
+    except BlockedRequest as e:
+        return {"blocked": True, "entity_types": e.entity_types}
+    return {"blocked": False, "sent_to_llm": result.payload["messages"],
+            "entity_types": result.entity_types}
