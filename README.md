@@ -53,12 +53,13 @@ curl -s localhost:8000/v1/chat/completions -H 'content-type: application/json' \
 ```
 
 To use a real LLM, set `UPSTREAM_BASE_URL`, `UPSTREAM_API_KEY` and
-`UPSTREAM_MODEL` in `.env` (Groq and Gemini have free OpenAI-compatible
-endpoints; see `.env.example`). Any OpenAI SDK client then works unchanged with
+`UPSTREAM_MODEL` in `.env` (OpenAI, or the free OpenAI-compatible endpoints from
+Groq and Gemini; see `.env.example`). Any OpenAI SDK client then works unchanged with
 `base_url="http://localhost:8000/v1"`; see `examples/client_demo.py`.
 
 ```bash
-pytest -q                  # 14 end-to-end + unit tests
+python -m spacy download en_core_web_sm   # small NER model used by the tests
+pytest -q                  # end-to-end + unit tests
 python -m eval.evaluate    # precision / recall / latency
 ```
 
@@ -78,8 +79,8 @@ python -m eval.evaluate    # precision / recall / latency
 
 **Request path**
 1. **Extract every text field** the model will see: system, user and assistant
-   messages *and tool-call arguments*. Content that can't be inspected (images)
-   is rejected rather than passed through.
+   messages, *tool-call arguments*, tool definitions and the `user` field.
+   Content that can't be inspected (images) is rejected rather than passed through.
 2. **Detect** with two layers in one engine:
    - *Regex + checksums* for structured PII: emails, IPs, cards (Luhn),
      Aadhaar (Verhoeff), PAN, Indian mobiles, UPI IDs. Fast and deterministic;
@@ -95,11 +96,14 @@ python -m eval.evaluate    # precision / recall / latency
    <PERSON_2>, then <PERSON_1> replied").
 
 **Response path**
-6. **Scan** the model's answer for PII it produced itself (logged; redacted
+6. **Repair** placeholders the model garbled. Testing against `gpt-4o-mini`
+   showed replies with `<Person_1>` or `<PERSION_1>`, so a near match is mapped
+   back to the placeholder with the same number.
+7. **Scan** the model's answer for PII it produced itself (logged; redacted
    when `REDACT_RESPONSE_PII=true`).
-7. **Rehydrate** placeholders back to real values. Placeholders the model
+8. **Rehydrate** placeholders back to real values. Placeholders the model
    invented that aren't in the vault are left untouched rather than guessed.
-8. **Audit**: outcome, entity types and counts, gateway latency. Never values.
+9. **Audit**: outcome, entity types and counts, gateway latency. Never values.
 
 ## Security decisions
 
@@ -114,7 +118,9 @@ python -m eval.evaluate    # precision / recall / latency
 - **Logs contain no PII**; otherwise the audit log becomes a new leak (tested).
 - **Recall over precision.** A missed value is a leak; a false flag only costs
   a little answer quality. Unknown entity types default to `tokenize`.
-- **Placeholders are never re-detected**, so they can't be double-masked.
+- **Only placeholders we issued are skipped** when scanning a response. Text in
+  a request that merely looks like one (`<CARD_4111111111111111>`) is scanned
+  as normal, so it can't be used to hide PII.
 
 ## Evaluation
 
@@ -123,8 +129,8 @@ sentences with none, Indian names and identifiers):
 
 | Model | Recall | Precision | Mean latency / message |
 |---|---|---|---|
-| `en_core_web_lg` | **100%** | 97.8% | ~10 ms |
-| `en_core_web_sm` | 84% | 92% | ~10 ms |
+| `en_core_web_lg` | **100%** | 100% | ~15 ms |
+| `en_core_web_sm` | 84% | 92% | ~15 ms |
 
 Regex-based types (emails, phones, cards, Aadhaar, PAN, UPI, IPs) scored 100%
 with both models; all misses with the small model were names, which shows why
@@ -157,6 +163,10 @@ plus real anonymised samples).
   fintech") contain no PII entity but can still identify someone. Detectors
   can't reliably catch this; it needs policy and user education.
 - **Images and files** are rejected. Next: OCR → same detection pipeline.
+- **Other top-level fields.** `messages`, `user` and `tools`/`functions` are
+  scanned; anything else, such as `metadata`, is forwarded as it is.
+- **Partial names.** If "Priya Nair" is detected, a lone "Priya" elsewhere is
+  masked only if NER finds it on its own.
 - **Multi-turn vault.** Placeholders are consistent within a request (which
   carries the full chat history), but not across separate requests. A
   session-scoped, encrypted Redis vault with a TTL would fix that.

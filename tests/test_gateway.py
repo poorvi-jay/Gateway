@@ -12,12 +12,16 @@ os.environ["POLICY_PATH"] = os.path.join(os.path.dirname(__file__), "..", "polic
 
 import json  # noqa: E402
 
+import httpx  # noqa: E402
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 import app.main as gw  # noqa: E402
+from app.detector import Finding, _finding  # noqa: E402
+from app.policy import Policy  # noqa: E402
 from app.recognizers import verhoeff_valid  # noqa: E402
-from app.tokenizer import Vault, rehydrate  # noqa: E402
+from app.sanitizer import sanitize_request  # noqa: E402
+from app.tokenizer import Vault, rehydrate, repair  # noqa: E402
 
 VALID_AADHAAR = "2341 2341 2346"  # passes the Verhoeff checksum
 URL = "/v1/chat/completions"
@@ -141,6 +145,240 @@ def test_audit_log_has_no_raw_pii(client, fake_llm):
     log = open(os.environ["AUDIT_LOG_PATH"]).read()
     assert "rahul.s@gmail.com" not in log and "Rahul Sharma" not in log
     assert "EMAIL_ADDRESS" in log
+
+
+# ---------------------------------------------------------------- bypasses
+@pytest.mark.parametrize("text", [
+    "Charge <CARD_4111111111111111> now",
+    "Charge CARD_4111111111111111 now",
+])
+def test_placeholder_shape_cannot_hide_blocked_id(client, fake_llm, text):
+    r = chat(client, text)
+    assert r.status_code == 400
+    assert "payload" not in fake_llm
+
+
+def test_placeholder_shape_cannot_hide_phone(client, fake_llm):
+    chat(client, "Call <X_9876543210> now")
+    assert "9876543210" not in json.dumps(fake_llm["payload"])
+
+
+def test_email_with_underscore_fully_masked(client, fake_llm):
+    chat(client, "Write to rahul_s@gmail.com")
+    assert "rahul" not in json.dumps(fake_llm["payload"])
+
+
+def test_response_keeps_our_placeholder_but_rehydrates(client, fake_llm):
+    fake_llm["reply"] = "Noted, <IN_PHONE_1>."
+    r = chat(client, "Save 9876543210")
+    assert r.json()["choices"][0]["message"]["content"] == "Noted, 9876543210."
+
+
+def test_message_name_is_scanned(client, fake_llm):
+    body = {"model": "x", "messages": [
+        {"role": "system", "content": "You help Priya Nair."},
+        {"role": "user", "name": "Priya Nair", "content": "hi"}]}
+    client.post(URL, json=body)
+    assert "Priya" not in json.dumps(fake_llm["payload"])
+    assert fake_llm["payload"]["messages"][1]["name"] == "PERSON_1"  # OpenAI rejects "<"
+
+
+def test_tool_message_name_is_kept(client, fake_llm):
+    body = {"model": "x", "messages": [
+        {"role": "system", "content": "You help Priya Nair."},
+        {"role": "tool", "name": "Priya Nair", "tool_call_id": "1", "content": "hi"},
+        {"role": "user", "content": "ok"}]}
+    client.post(URL, json=body)
+    assert fake_llm["payload"]["messages"][1]["name"] == "Priya Nair"
+
+
+def test_legacy_function_call_is_scanned(client, fake_llm):
+    body = {"model": "x", "messages": [
+        {"role": "assistant", "content": None,
+         "function_call": {"name": "send_sms", "arguments": '{"to": "9876543210"}'}},
+        {"role": "user", "content": "done?"}]}
+    client.post(URL, json=body)
+    assert "9876543210" not in json.dumps(fake_llm["payload"])
+
+
+@pytest.mark.parametrize("message", [
+    {"role": "user", "content": {"text": "call 9876543210"}},
+    {"role": "assistant", "content": None, "tool_calls": [
+        {"id": "1", "type": "function",
+         "function": {"name": "f", "arguments": {"to": "9876543210"}}}]},
+])
+def test_uninspectable_shapes_rejected(client, fake_llm, message):
+    r = client.post(URL, json={"model": "x", "messages": [message]})
+    assert r.status_code == 400
+    assert "payload" not in fake_llm
+
+
+def tool(description, **properties):
+    return {"type": "function", "function": {
+        "name": "send_mail", "description": description,
+        "parameters": {"type": "object", "properties": properties, "required": ["name"]}}}
+
+
+def test_user_field_is_scanned(client, fake_llm):
+    chat(client, "hi", user="rahul.s@gmail.com")
+    assert fake_llm["payload"]["user"] == "<EMAIL_ADDRESS_1>"
+
+
+def test_non_string_user_rejected(client, fake_llm):
+    assert chat(client, "hi", user=9876543210).status_code == 400
+    assert "payload" not in fake_llm
+
+
+def test_tool_definitions_are_scanned_and_stay_valid(client, fake_llm):
+    tools = [tool("Sends mail to rahul.s@gmail.com",
+                  name={"type": "string", "description": "Or call 9876543210"},
+                  to={"type": "string", "enum": ["rahul.s@gmail.com"]})]
+    chat(client, "hi", tools=tools)
+    sent = fake_llm["payload"]["tools"][0]["function"]
+    assert "rahul" not in json.dumps(sent) and "9876543210" not in json.dumps(sent)
+    assert sent["name"] == "send_mail" and sent["parameters"]["required"] == ["name"]
+    assert sent["parameters"]["properties"]["name"]["type"] == "string"
+    assert sent["parameters"]["properties"]["to"]["enum"] == ["<EMAIL_ADDRESS_1>"]
+
+
+def test_clean_tools_scanned_once_but_still_masked(client, fake_llm, monkeypatch):
+    detector, calls = client.app.state.detector, []
+    real = detector.detect
+    monkeypatch.setattr(detector, "detect",
+                        lambda text, ignore=(): calls.append(text) or real(text, ignore))
+    tools = [tool("Looks up one billing record, default 12 items.")]
+    chat(client, "hi", tools=tools)
+    chat(client, "Keep 12 items for 9876543210", tools=tools)
+    assert sum("billing record" in t for t in calls) == 1
+
+    fake_llm["payload"].clear()
+    tools = [tool("Looks up one billing record, fallback 9876543210.")]
+    chat(client, "Save 9876543210", tools=tools)
+    chat(client, "Save 9876543210", tools=tools)
+    assert "9876543210" not in json.dumps(fake_llm["payload"])
+
+
+def test_legacy_functions_are_scanned(client, fake_llm):
+    chat(client, "hi", functions=[{"name": "f", "description": "Call 9876543210"}])
+    assert "9876543210" not in json.dumps(fake_llm["payload"])
+
+
+def test_blocked_id_in_tool_definition_blocks_request(client, fake_llm):
+    r = chat(client, "hi", tools=[tool(f"Aadhaar {VALID_AADHAAR}")])
+    assert r.status_code == 400 and r.json()["error"]["code"] == "pii_blocked"
+    assert "payload" not in fake_llm
+
+
+def test_value_seen_in_message_is_masked_in_tools(client, fake_llm):
+    chat(client, "Save 9876543210", tools=[tool("Default is 9876543210.")])
+    sent = fake_llm["payload"]
+    assert "<IN_PHONE_1>" in sent["messages"][0]["content"]
+    assert "<IN_PHONE_1>" in sent["tools"][0]["function"]["description"]
+
+
+def test_debug_shows_sanitized_tools_and_user(client):
+    body = {"messages": [{"role": "user", "content": "hi"}], "user": "rahul.s@gmail.com",
+            "tools": [tool("Mail rahul.s@gmail.com")]}
+    out = client.post("/debug/sanitize", json=body).json()
+    assert out["user"] == "<EMAIL_ADDRESS_1>"
+    assert "rahul" not in json.dumps(out)
+    assert out["entity_types"] == ["EMAIL_ADDRESS", "EMAIL_ADDRESS"]
+
+
+@pytest.mark.parametrize("reply", ["<Person_1> called.", "<PERSION_1> called.", "<person_1> called."])
+def test_garbled_placeholder_is_restored(client, fake_llm, reply):
+    fake_llm["reply"] = reply
+    r = chat(client, "Write a note to Rahul Sharma")
+    assert r.json()["choices"][0]["message"]["content"] == "Rahul Sharma called."
+
+
+def test_garbled_placeholder_needs_matching_number():
+    v = Vault()
+    v.placeholder_for("PERSON", "Asha")
+    assert repair("<PERSION_9>", v) == "<PERSION_9>"
+    assert repair("<IN_PHONE_1>", v) == "<IN_PHONE_1>"
+
+
+def failing_upstream(monkeypatch, status):
+    async def fail(payload):
+        response = httpx.Response(status, json={"error": {"message": "from upstream"}})
+        raise httpx.HTTPStatusError("x", request=httpx.Request("POST", "http://x"),
+                                    response=response)
+    monkeypatch.setattr(gw, "call_upstream", fail)
+
+
+@pytest.mark.parametrize("status", [400, 429])
+def test_client_errors_from_upstream_are_passed_on(client, monkeypatch, status):
+    failing_upstream(monkeypatch, status)
+    r = chat(client, "hi")
+    assert r.status_code == status and r.json()["error"]["message"] == "from upstream"
+
+
+def test_bad_upstream_key_stays_a_gateway_error(client, monkeypatch):
+    failing_upstream(monkeypatch, 401)
+    r = chat(client, "hi")
+    assert r.status_code == 502 and r.json()["error"]["code"] == "upstream_error"
+
+
+@pytest.mark.parametrize("route", [URL, "/debug/sanitize"])
+@pytest.mark.parametrize("body", ["{", "[1]", '{"model": "x"}'])
+def test_malformed_body_is_400(client, fake_llm, route, body):
+    assert client.post(route, content=body).status_code == 400
+    assert "payload" not in fake_llm
+
+
+def test_debug_rejects_images(client):
+    body = {"messages": [{"role": "user", "content": [{"type": "image_url"}]}]}
+    assert client.post("/debug/sanitize", json=body).status_code == 400
+
+
+def test_wrong_api_key_rejected(client, fake_llm, monkeypatch):
+    monkeypatch.setattr(gw, "GATEWAY_API_KEY", "secret")
+    body = {"model": "x", "messages": [{"role": "user", "content": "hi"}]}
+    assert client.post(URL, json=body, headers={"authorization": "Bearer nope"}).status_code == 401
+    ok = client.post(URL, json=body, headers={"authorization": "Bearer secret"})
+    assert ok.status_code == 200
+
+
+# ---------------------------------------------------------------- precision
+def test_verb_is_not_masked_as_part_of_name():
+    text = "Email Rahul Sharma now"
+
+    class Result:
+        entity_type, start, end, score = "PERSON", 0, len("Email Rahul Sharma"), 0.85
+
+    finding = _finding(Result, text)
+    assert finding.text == "Rahul Sharma"
+
+
+def test_quarter_is_not_a_location(client):
+    assert client.app.state.detector.detect("Our Q3 revenue grew") == []
+
+
+class StubDetector:
+    """Finds exactly the values given, per text."""
+    def __init__(self, by_text):
+        self.by_text = by_text
+
+    def detect(self, text):
+        return [Finding("PERSON", text.index(v), text.index(v) + len(v), 0.9, v)
+                for v in self.by_text.get(text, [])]
+
+
+def test_propagation_prefers_longest_and_ignores_case():
+    texts = {"Priya": ["Priya"], "Priya Nair": ["Priya Nair"]}
+    payload = {"messages": [{"role": "user", "content": t} for t in texts]
+               + [{"role": "user", "content": "Ask Priya Nair or PRIYA NAIR"}]}
+    out = sanitize_request(payload, StubDetector(texts), Policy(actions={"PERSON": "tokenize"}))
+    assert "nair" not in out.payload["messages"][2]["content"].lower()
+
+
+def test_propagation_matches_whole_words_only():
+    texts = {"Raj Patel": ["Raj Patel"], "Raj": ["Raj"]}
+    payload = {"messages": [{"role": "user", "content": t} for t in texts]
+               + [{"role": "user", "content": "Back from Rajasthan"}]}
+    out = sanitize_request(payload, StubDetector(texts), Policy(actions={"PERSON": "tokenize"}))
+    assert out.payload["messages"][2]["content"] == "Back from Rajasthan"
 
 
 # ---------------------------------------------------------------- unit

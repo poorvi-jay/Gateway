@@ -18,8 +18,14 @@ from presidio_analyzer.nlp_engine import NlpEngineProvider
 from .policy import Policy
 from .recognizers import custom_recognizers
 
-# Our own placeholders must never be re-detected as PII.
 PLACEHOLDER_RE = re.compile(r"<[A-Z][A-Z_]*_\d+>")
+
+# NER sometimes pulls the verb into the name: "[Email Rahul Sharma] at ...".
+PERSON_LEAD_RE = re.compile(
+    r"(?:e-?mail|mail|call|phone|text|message|contact|ping|sms|whatsapp)\s+", re.IGNORECASE)
+
+# Business terms NER mistakes for places.
+ALLOWED_TERMS = ["Q1", "Q2", "Q3", "Q4"]
 
 
 @dataclass
@@ -45,18 +51,29 @@ class Detector:
         for rec in custom_recognizers():
             self.analyzer.registry.add_recognizer(rec)
 
-    def detect(self, text: str) -> list[Finding]:
-        if not text or not text.strip():
-            return []
-        results = self.analyzer.analyze(
+    def _analyze(self, text: str):
+        return self.analyzer.analyze(
             text=text,
             language="en",
             entities=self.policy.scanned_entities,
             score_threshold=self.policy.score_threshold,
+            allow_list=ALLOWED_TERMS,
         )
-        placeholder_spans = [m.span() for m in PLACEHOLDER_RE.finditer(text)]
+
+    def detect(self, text: str, ignore=()) -> list[Finding]:
+        """`ignore` holds placeholders we issued ourselves. Only those may be
+        skipped: anything shaped like a placeholder could be hiding real PII."""
+        if not text or not text.strip():
+            return []
+        results = self._analyze(text)
+        # Regexes treat "_" as part of a word, so an ID glued to one
+        # (CARD_4111111111111111) slips past them. Offsets stay the same.
+        if "_" in text:
+            results += self._analyze(text.replace("_", " "))
+        placeholder_spans = [m.span() for m in PLACEHOLDER_RE.finditer(text)
+                             if m.group(0) in ignore]
         findings = [
-            Finding(r.entity_type, r.start, r.end, r.score, text[r.start:r.end])
+            _finding(r, text)
             for r in results
             if not _overlaps_any(r.start, r.end, placeholder_spans)
         ]
@@ -76,6 +93,15 @@ class Detector:
             if not any(f.start < k.end and k.start < f.end for k in kept):
                 kept.append(f)
         return sorted(kept, key=lambda f: f.start)
+
+
+def _finding(result, text: str) -> Finding:
+    start = result.start
+    if result.entity_type == "PERSON":
+        lead = PERSON_LEAD_RE.match(text, start, result.end)
+        if lead and lead.end() < result.end:
+            start = lead.end()
+    return Finding(result.entity_type, start, result.end, result.score, text[start:result.end])
 
 
 def _overlaps_any(start: int, end: int, spans: list[tuple[int, int]]) -> bool:

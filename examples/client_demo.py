@@ -1,6 +1,7 @@
 """
 Shows that an unmodified OpenAI client works through the gateway - the only
-change is base_url. Start the gateway first:  uvicorn app.main:app --port 8000
+change is base_url. Start the gateway first:
+    uvicorn app.main:app --port 8000 --env-file .env
 """
 from openai import OpenAI
 

@@ -10,13 +10,14 @@ strips PII, forwards to the real LLM, and restores values in the answer.
 """
 import asyncio
 import os
+import secrets
 import time
 import uuid
 from contextlib import asynccontextmanager
 
 import httpx
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from .audit import audit
 from .detector import Detector
@@ -77,7 +78,19 @@ async def call_upstream(payload: dict) -> dict:
 def check_auth(request: Request) -> bool:
     if not GATEWAY_API_KEY:
         return True
-    return request.headers.get("authorization") == f"Bearer {GATEWAY_API_KEY}"
+    header = request.headers.get("authorization", "")
+    return secrets.compare_digest(header.encode(), f"Bearer {GATEWAY_API_KEY}".encode())
+
+
+async def read_body(request: Request) -> dict | None:
+    """The chat request as a dict, or None if it isn't one we can inspect."""
+    try:
+        payload = await request.json()
+    except Exception:
+        return None
+    if isinstance(payload, dict) and isinstance(payload.get("messages"), list):
+        return payload
+    return None
 
 
 @app.get("/health")
@@ -93,10 +106,9 @@ async def chat_completions(request: Request):
     if not check_auth(request):
         return error(401, "Invalid gateway API key", "unauthorized")
 
-    try:
-        payload = await request.json()
-    except Exception:
-        return error(400, "Body must be JSON", "invalid_request")
+    payload = await read_body(request)
+    if payload is None:
+        return error(400, "Body must be a JSON object with a messages list", "invalid_request")
 
     if payload.get("stream"):
         return error(400, "Streaming is not supported by this gateway yet", "unsupported")
@@ -126,6 +138,15 @@ async def chat_completions(request: Request):
     # ---- Forward sanitized payload ----
     try:
         upstream = await call_upstream(result.payload)
+    except httpx.HTTPStatusError as e:
+        status = e.response.status_code
+        audit(rid, "error", entities_in=result.entity_types, reason=f"upstream:{status}")
+        # The client's mistake or a rate limit: pass it on so SDKs react. Safe
+        # to echo, as upstream only ever saw placeholders. 401/403 mean OUR key
+        # is wrong, which isn't the client's problem.
+        if status in (400, 404, 422, 429):
+            return Response(e.response.content, status, media_type="application/json")
+        return error(502, "Upstream LLM request failed", "upstream_error")
     except Exception as e:
         audit(rid, "error", entities_in=result.entity_types, reason=f"upstream:{type(e).__name__}")
         return error(502, "Upstream LLM request failed", "upstream_error")
@@ -154,10 +175,15 @@ async def debug_sanitize(request: Request):
         return error(404, "Not found", "not_found")
     if not check_auth(request):
         return error(401, "Invalid gateway API key", "unauthorized")
-    payload = await request.json()
+    payload = await read_body(request)
+    if payload is None:
+        return error(400, "Body must be a JSON object with a messages list", "invalid_request")
     try:
         result = sanitize_request(payload, request.app.state.detector, request.app.state.policy)
     except BlockedRequest as e:
         return {"blocked": True, "entity_types": e.entity_types}
+    except UnsupportedContent as e:
+        return error(400, str(e), "unsupported_content")
     return {"blocked": False, "sent_to_llm": result.payload["messages"],
+            **{k: result.payload[k] for k in ("user", "tools", "functions") if k in result.payload},
             "entity_types": result.entity_types}

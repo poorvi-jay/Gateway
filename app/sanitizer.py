@@ -3,15 +3,27 @@ Request/response processing, kept separate from the HTTP layer so it can be
 tested on its own.
 
 Every text field the model will see is scanned - not just the user message:
-system prompts, assistant history, tool-call arguments and tool results. Tool
-arguments are a common leak path that naive filters miss.
+system prompts, assistant history, tool-call arguments, tool results, tool
+definitions and the end-user id. Tool arguments are a common leak path that
+naive filters miss.
 """
 import copy
+import hashlib
+import re
 from dataclasses import dataclass, field
 
 from .detector import Detector, Finding
 from .policy import Policy
-from .tokenizer import Vault, rehydrate, tokenize
+from .tokenizer import Vault, rehydrate, repair, tokenize
+
+
+# JSON Schema and tool fields that are identifiers, not text. Changing them
+# would break the tool the model is asked to call.
+SCHEMA_KEYS = {"type", "name", "required", "$ref", "format", "pattern"}
+
+# shortcut: never evicted and assumes one policy per process, fine for the
+# handful of tool sets an app uses; add an LRU if clients generate them.
+_clean_tools: set[str] = set()
 
 
 class BlockedRequest(Exception):
@@ -46,47 +58,101 @@ def _text_slots(message: dict):
                 raise UnsupportedContent(
                     f"content part of type '{part.get('type')}' cannot be inspected for PII"
                 )
-    for call in message.get("tool_calls") or []:
-        fn = call.get("function", {})
+    elif content is not None:
+        raise UnsupportedContent("message content must be a string or a list of parts")
+    # On "tool" messages, name is the function's name, not a participant's.
+    # OpenAI rejects "<" and spaces in name, so a masked one loses them.
+    if isinstance(message.get("name"), str) and message.get("role") != "tool":
+        yield (lambda m=message: m["name"],
+               lambda v, m=message: m.__setitem__("name", re.sub(r"[^\w-]+", "", v)))
+    calls = [call.get("function", {}) for call in message.get("tool_calls") or []]
+    for fn in calls + [message.get("function_call") or {}]:  # function_call: legacy API
         if isinstance(fn.get("arguments"), str):
             yield (lambda f=fn: f["arguments"], lambda v, f=fn: f.__setitem__("arguments", v))
+        elif fn.get("arguments") is not None:
+            raise UnsupportedContent("tool arguments must be a string")
+
+
+def _schema_slots(node):
+    """Yield (getter, setter) pairs for the free text in tool definitions,
+    leaving the parts that make the schema valid untouched."""
+    items = node.items() if isinstance(node, dict) else enumerate(node)
+    for key, value in items:
+        if isinstance(value, str):
+            if key not in SCHEMA_KEYS:
+                yield (lambda n=node, k=key: n[k], lambda v, n=node, k=key: n.__setitem__(k, v))
+        # A dict here may be a property that happens to be called "name".
+        elif isinstance(value, dict) or (isinstance(value, list) and key not in SCHEMA_KEYS):
+            yield from _schema_slots(value)
+
+
+def _request_slots(payload: dict):
+    """Yield (getter, setter) pairs for every text field sent to the model."""
+    for msg in payload.get("messages", []):
+        yield from _text_slots(msg)
+    user = payload.get("user")
+    if isinstance(user, str):
+        yield (lambda p=payload: p["user"], lambda v, p=payload: p.__setitem__("user", v))
+    elif user is not None:
+        raise UnsupportedContent("user must be a string")
+
+
+def _tool_slots(payload: dict):
+    for key in ("tools", "functions"):  # functions: legacy API
+        if payload.get(key) is not None:
+            yield from _schema_slots(payload[key])
 
 
 def sanitize_request(payload: dict, detector: Detector, policy: Policy) -> SanitizeResult:
     clean = copy.deepcopy(payload)  # never mutate the caller's object
     vault = Vault()
-    seen: list[str] = []
     to_block: set[str] = set()
 
     # Pass 1: detect everything first, so we can block before tokenizing anything.
     work: list[tuple[callable, list[Finding]]] = []
-    for msg in clean.get("messages", []):
-        for get, set_ in _text_slots(msg):
-            findings = detector.detect(get())
-            for f in findings:
-                seen.append(f.entity_type)
-                if policy.action_for(f.entity_type) == "block":
-                    to_block.add(f.entity_type)
-            work.append((get, set_, findings))
+    def scan(text: str) -> list[Finding]:
+        findings = detector.detect(text)
+        to_block.update(f.entity_type for f in findings
+                        if policy.action_for(f.entity_type) == "block")
+        return findings
+
+    for get, set_ in _request_slots(clean):
+        work.append((get, set_, scan(get())))
+
+    # Tool definitions can hold hundreds of strings and repeat on every request,
+    # so they are scanned as one text; propagation below then masks what was
+    # found in each string. Clean ones are remembered by hash, which stores no PII.
+    tool_slots = list(_tool_slots(clean))
+    tool_findings: list[Finding] = []
+    if tool_slots:
+        joined = "\n\n".join(get() for get, _ in tool_slots)
+        digest = hashlib.sha256(joined.encode()).hexdigest()
+        if digest not in _clean_tools:
+            tool_findings = scan(joined)
+            if not tool_findings:
+                _clean_tools.add(digest)
+        work += [(get, set_, []) for get, set_ in tool_slots]
 
     if to_block:
         raise BlockedRequest(to_block)
 
     # Known-value propagation: NER is not perfectly consistent - it may spot
     # "Priya Nair" in one sentence and miss it in the next. Anything detected
-    # ONCE is masked EVERYWHERE it appears in the request.
-    known = {(f.entity_type, f.text) for _, _, fs in work for f in fs}
+    # ONCE is masked EVERYWHERE it appears in the request. Longest first, so
+    # "Priya" can't claim the start of "Priya Nair" and leave "Nair" exposed.
+    all_findings = [f for _, _, fs in work for f in fs] + tool_findings
+    known = {(f.entity_type, part) for f in all_findings
+             for part in f.text.split("\n") if part.strip()}
+    known = sorted(known, key=lambda k: len(k[1]), reverse=True)
     for i, (get, set_, findings) in enumerate(work):
         text = get()
         extra = []
         for etype, value in known:
-            start = text.find(value)
-            while start != -1:
-                end = start + len(value)
+            # Whole words only: "Raj" must not eat the start of "Rajasthan".
+            for m in re.finditer(rf"(?<!\w){re.escape(value)}(?!\w)", text, re.IGNORECASE):
+                start, end = m.span()
                 if not any(start < f.end and f.start < end for f in findings + extra):
                     extra.append(Finding(etype, start, end, 1.0, value))
-                    seen.append(etype)
-                start = text.find(value, end)
         work[i] = (get, set_, findings + extra)
 
     # Pass 2: replace PII with placeholders. One vault for the whole request,
@@ -95,7 +161,8 @@ def sanitize_request(payload: dict, detector: Detector, policy: Policy) -> Sanit
         if findings:
             set_(tokenize(get(), findings, vault))
 
-    return SanitizeResult(payload=clean, vault=vault, entity_types=seen)
+    return SanitizeResult(payload=clean, vault=vault,
+                          entity_types=[f.entity_type for _, _, fs in work for f in fs])
 
 
 def process_response(response: dict, vault: Vault, detector: Detector,
@@ -110,7 +177,8 @@ def process_response(response: dict, vault: Vault, detector: Detector,
             text = get()
             if not text:
                 continue
-            new_pii = detector.detect(text)  # placeholders are skipped by the detector
+            text = repair(text, vault)
+            new_pii = detector.detect(text, ignore=vault)
             found += [f.entity_type for f in new_pii]
             if redact_new_pii:
                 for f in sorted(new_pii, key=lambda f: f.start, reverse=True):
