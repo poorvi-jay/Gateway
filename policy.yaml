@@ -1,0 +1,26 @@
+# What the gateway does with each kind of PII.
+#   tokenize -> replace with a placeholder like <PERSON_1>, restore it in the answer
+#   block    -> reject the whole request; this data must never leave
+#   allow    -> do nothing (entity is not scanned for at all)
+#
+# Entity types not listed here are not scanned for.
+
+score_threshold: 0.5      # ignore detections below this confidence
+
+entities:
+  # --- too sensitive to send even as a placeholder context ---
+  IN_AADHAAR: block
+  CREDIT_CARD: block
+  IN_PAN: block
+
+  # --- replaced with placeholders, restored in the answer ---
+  PERSON: tokenize
+  EMAIL_ADDRESS: tokenize
+  IN_PHONE: tokenize
+  PHONE_NUMBER: tokenize
+  UPI_ID: tokenize
+  IP_ADDRESS: tokenize
+  LOCATION: tokenize
+
+  # --- explicitly allowed (dates are needed for most real tasks) ---
+  DATE_TIME: allow
