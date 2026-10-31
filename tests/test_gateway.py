@@ -66,6 +66,15 @@ def test_answer_is_rehydrated(client, fake_llm):
     assert answer == "Dear Rahul Sharma, we will call you on 9876543210."
 
 
+def test_same_value_same_placeholder_across_messages(client, fake_llm):
+    body = {"model": "x", "messages": [
+        {"role": "system", "content": "You help Priya Nair."},
+        {"role": "user", "content": "Remind Priya Nair about the meeting."}]}
+    client.post(URL, json=body)
+    msgs = fake_llm["payload"]["messages"]
+    assert "<PERSON_1>" in msgs[0]["content"] and "<PERSON_1>" in msgs[1]["content"]
+
+
 def test_tool_call_arguments_are_scanned(client, fake_llm):
     body = {"model": "x", "messages": [
         {"role": "assistant", "content": None, "tool_calls": [{

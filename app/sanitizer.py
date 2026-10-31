@@ -72,6 +72,23 @@ def sanitize_request(payload: dict, detector: Detector, policy: Policy) -> Sanit
     if to_block:
         raise BlockedRequest(to_block)
 
+    # Known-value propagation: NER is not perfectly consistent - it may spot
+    # "Priya Nair" in one sentence and miss it in the next. Anything detected
+    # ONCE is masked EVERYWHERE it appears in the request.
+    known = {(f.entity_type, f.text) for _, _, fs in work for f in fs}
+    for i, (get, set_, findings) in enumerate(work):
+        text = get()
+        extra = []
+        for etype, value in known:
+            start = text.find(value)
+            while start != -1:
+                end = start + len(value)
+                if not any(start < f.end and f.start < end for f in findings + extra):
+                    extra.append(Finding(etype, start, end, 1.0, value))
+                    seen.append(etype)
+                start = text.find(value, end)
+        work[i] = (get, set_, findings + extra)
+
     # Pass 2: replace PII with placeholders. One vault for the whole request,
     # so "Rahul" in message 1 and message 5 both become <PERSON_1>.
     for get, set_, findings in work:
