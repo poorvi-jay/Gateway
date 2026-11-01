@@ -77,7 +77,8 @@ python -m eval.evaluate eval/synthetic_test.jsonl   # on the held-back synthetic
 | `app/detector.py` | Presidio engine combining regex recognizers + spaCy NER; resolves overlapping matches |
 | `app/recognizers.py` | Indian identifiers (Aadhaar with Verhoeff checksum, PAN, passport, voter ID, driving licence, mobile numbers, UPI IDs, IFSC), bank accounts, dates of birth, PIN codes, API keys and passwords |
 | `app/tokenizer.py` | Per-request vault: placeholder ↔ value mapping, tokenize and rehydrate |
-| `app/policy.py` + `policy.yaml` | Per-entity action: `tokenize`, `block` or `allow` |
+| `app/gliner_compare.py` | Optional local comparison with NVIDIA GLiNER-PII on the demo page. Never changes what reaches the LLM. Install `requirements-gliner.txt`, set `ENABLE_GLINER=true` |
+| `app/policy.py` + `policy.yaml` | Per-entity action: `tokenize`, `redact`, `block` or `allow` |
 | `app/audit.py` | JSON-lines audit log with entity types and counts only |
 | `eval/synthetic.py` + `eval/evaluate.py` | Seeded Faker test data; precision, recall and latency scoring |
 
@@ -103,6 +104,11 @@ python -m eval.evaluate eval/synthetic_test.jsonl   # on the held-back synthetic
    becomes the same `<PERSON_1>`, unless two people share that word.
 4. **Policy.** If any `block` entity is present the request is rejected and the
    LLM is never called. Otherwise, values are replaced with placeholders.
+   Any type can be switched in `policy.yaml`, for example
+   `IN_AADHAAR: tokenize` (masked, restored in the answer) or `IN_AADHAAR: redact`
+   (`[REDACTED_IN_AADHAAR]`, never restored); restart to apply. Blocking is the
+   default for IDs because it also holds back anything else in that message
+   that detection missed.
 5. **Consistent placeholders.** The same value gets the same placeholder across
    the whole conversation, so the model can still reason ("<PERSON_1> emailed
    <PERSON_2>, then <PERSON_1> replied").
@@ -147,6 +153,9 @@ message. *Masked* is stricter than recall: nothing of the value may be left show
 | | `en_core_web_sm` | 92.2% | 91.8% | 96.3% |
 | Hand-written: 52 sentences, 55 spans | `en_core_web_lg` | 100% | 100% | 100% |
 | | `en_core_web_sm` | 92.7% | 90.9% | 92.7% |
+| Test, comparison only | NVIDIA GLiNER-PII, local CPU | 98.2% | 98.2% | 81.2% |
+| Dev, comparison only | NVIDIA GLiNER-PII, local CPU | 98.0% | 96.9% | 88.8% |
+| Hand-written, comparison only | NVIDIA GLiNER-PII, local CPU | 98.2% | 98.2% | 87.1% |
 
 **Trust the test row.** `eval/synthetic.py` uses Faker's `en_IN` locale with a
 fixed seed. Misses on dev were looked at and fixed; test has its own seed and
@@ -167,6 +176,17 @@ On the test set with `en_core_web_lg`:
 - **Precision is mostly one error:** spaCy tags "OTP" as a name. It costs a
   masked word, not a leak.
 
+**NVIDIA GLiNER-PII on the same data** (`--gliner`, label list fixed before scoring,
+nothing tuned): it caught all 56 names and all 8 landlines, the gateway's two weak
+spots, and missed 4 of 224 values (2 mobiles, 2 OTPs). Three costs keep it optional:
+- **Speed and size:** about 2.8 s per message on CPU against about 20 ms, 2.2 GB of
+  memory and a 1.8 GB model.
+- **False flags:** it marks invoice numbers, part numbers and ordinary dates as
+  personal data, which would remove details the model needs.
+- **Labels can't drive blocking:** it tagged a real Aadhaar number as a card number.
+  Recall above counts any label, so these scores say the value was hidden, not that
+  the type was right. Block decisions stay with checksums.
+
 **Caveats:** templated sentences are cleaner than real text, and Faker's city
 list overlaps the gateway's own list of major cities, so the 100% on places is
 generous. Real anonymised samples would be a better test still.
@@ -181,7 +201,7 @@ generous. Real anonymised samples would be a better test still.
 | Regex only | Can't find names or addresses. |
 | NER only | Misses structured IDs; less deterministic. |
 | LLM-based detection | Best context understanding, but slow and costly, and a *hosted* LLM means sending PII out to detect PII. A small local model is a good future third layer. |
-| Irreversible redaction | Safe but makes answers useless ("Dear [REDACTED]"). |
+| Irreversible redaction as the default | Safe but makes answers useless ("Dear [REDACTED]"). Available per type as `redact`. |
 | Synthetic fake values | Reads naturally, but fake values can collide with real data and are harder to reverse reliably. |
 | Self-hosted LLM / provider zero-retention | Removes the need, but costly, or only a contractual (not technical) guarantee. |
 
@@ -203,11 +223,10 @@ generous. Real anonymised samples would be a better test still.
   nearby is not flagged, and a phrase like "the secret is out" is masked as a
   password. Addresses are covered only as place names and PIN codes, and
   pre-2019 licence formats vary by state.
-- **A better model.** A label-conditioned model such as
+- **A better model.** The GLiNER numbers above suggest a label-conditioned model is
+  the likely third layer, for names and landlines. It needs a faster option, such as
   [GLiNER2-PII](https://huggingface.co/fastino/gliner2-privacy-filter-PII-multi)
-  (Apache 2.0, runs locally) is the likely third layer, and names are where it
-  would help most. It would need measuring on CPU first, and it would not replace
-  checksums for block decisions.
+  (Apache 2.0) or a GPU, and it would not replace checksums for block decisions.
 - **Multi-turn vault.** Placeholders are consistent within a request (which
   carries the full chat history), but not across separate requests. A
   session-scoped, encrypted Redis vault with a TTL would fix that.

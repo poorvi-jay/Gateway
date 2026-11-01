@@ -4,7 +4,7 @@ from pathlib import Path
 
 import yaml
 
-VALID_ACTIONS = {"tokenize", "block", "allow"}
+VALID_ACTIONS = {"tokenize", "redact", "block", "allow"}
 
 
 @dataclass

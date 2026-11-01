@@ -12,7 +12,8 @@ it (any entity type), because for leak prevention what matters is that the
 value was masked, not which label it got. Per-type numbers are also reported.
 "Masked" is stricter: a caught value with part of it still showing doesn't count.
 
-Run from the project root:   python -m eval.evaluate [path/to/set.jsonl]
+Run from the project root:   python -m eval.evaluate [path/to/set.jsonl] [--gliner]
+--gliner scores NVIDIA GLiNER-PII on the same data (needs requirements-gliner.txt).
 """
 import json
 import os
@@ -25,14 +26,15 @@ from pathlib import Path
 os.environ.setdefault("SPACY_MODEL", "en_core_web_lg")
 
 from app.detector import Detector  # noqa: E402
+from app.gliner_compare import GlinerDetector  # noqa: E402
 from app.policy import load_policy  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def main(path: Path):
-    policy = load_policy(ROOT / "policy.yaml")
-    detector = Detector(policy)
+def main(path: Path, detector=None):
+    model = "nvidia/gliner-pii" if detector else os.environ["SPACY_MODEL"]
+    detector = detector or Detector(load_policy(ROOT / "policy.yaml"))
     rows = [json.loads(l) for l in path.read_text(encoding="utf-8").splitlines() if l.strip()]
 
     tp_gold = fn = tp_pred = fp = 0
@@ -78,7 +80,7 @@ def main(path: Path):
 
     full = (tp_gold - len(partial)) / (tp_gold + fn) if tp_gold + fn else 1.0
 
-    print(f"Set: {path.name}   Model: {os.environ['SPACY_MODEL']}   Sentences: {len(rows)}   "
+    print(f"Set: {path.name}   Model: {model}   Sentences: {len(rows)}   "
           f"PII spans: {tp_gold + fn}")
     print(f"\nRecall    {recall:6.1%}   (PII caught; misses would leak)")
     print(f"Masked    {full:6.1%}   (PII caught with nothing left showing)")
@@ -98,4 +100,6 @@ def main(path: Path):
 
 
 if __name__ == "__main__":
-    main(Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "eval" / "dataset.jsonl")
+    args = [a for a in sys.argv[1:] if a != "--gliner"]
+    main(Path(args[0]) if args else ROOT / "eval" / "dataset.jsonl",
+         GlinerDetector() if "--gliner" in sys.argv else None)

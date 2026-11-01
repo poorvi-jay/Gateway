@@ -22,6 +22,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 
 from .audit import audit
 from .detector import Detector
+from .gliner_compare import GlinerDetector, mask
 from .policy import load_policy
 from .sanitizer import (BlockedRequest, UnsupportedContent, process_response,
                         sanitize_request)
@@ -33,6 +34,7 @@ UPSTREAM_MODEL = os.getenv("UPSTREAM_MODEL")          # optional model override
 GATEWAY_API_KEY = os.getenv("GATEWAY_API_KEY")        # optional client auth
 DETECTION_TIMEOUT_S = float(os.getenv("DETECTION_TIMEOUT_S", "5"))
 REDACT_RESPONSE_PII = os.getenv("REDACT_RESPONSE_PII", "false").lower() == "true"
+ENABLE_GLINER = os.getenv("ENABLE_GLINER", "false").lower() == "true"
 
 
 @asynccontextmanager
@@ -40,6 +42,7 @@ async def lifespan(app: FastAPI):
     # Load the NER model once at startup, not per request.
     app.state.policy = load_policy(POLICY_PATH)
     app.state.detector = Detector(app.state.policy)
+    app.state.gliner = GlinerDetector() if ENABLE_GLINER else None
     yield
 
 
@@ -193,3 +196,26 @@ async def debug_sanitize(request: Request):
     return {"blocked": False, "sent_to_llm": result.payload["messages"],
             **{k: result.payload[k] for k in ("user", "tools", "functions") if k in result.payload},
             "entity_types": result.entity_types}
+
+
+@app.post("/debug/gliner")
+async def debug_gliner(request: Request):
+    """What NVIDIA GLiNER-PII would mask in the last message. Compares only:
+    nothing here reaches the LLM. For demos only, like /debug/sanitize."""
+    if os.getenv("ENABLE_DEBUG", "true").lower() != "true":
+        return error(404, "Not found", "not_found")
+    if not check_auth(request):
+        return error(401, "Invalid gateway API key", "unauthorized")
+    payload = await read_body(request)
+    if payload is None:
+        return error(400, "Body must be a JSON object with a messages list", "invalid_request")
+    gliner = request.app.state.gliner
+    if gliner is None:
+        return {"available": False}
+    text = payload["messages"][-1].get("content")
+    if not isinstance(text, str):
+        return error(400, "Only plain text can be compared", "unsupported_content")
+    start = time.perf_counter()
+    masked, types = await asyncio.to_thread(mask, text, gliner)
+    return {"available": True, "masked": masked, "entity_types": types,
+            "latency_ms": round((time.perf_counter() - start) * 1000)}

@@ -189,9 +189,10 @@ def sanitize_request(payload: dict, detector: Detector, policy: Policy) -> Sanit
 
     # Pass 2: replace PII with placeholders. One vault for the whole request,
     # so "Rahul" in message 1 and message 5 both become <PERSON_1>.
+    redacted = {e for e, a in policy.actions.items() if a == "redact"}
     for get, set_, findings in work:
         if findings:
-            set_(tokenize(get(), findings, vault))
+            set_(tokenize(get(), findings, vault, redacted))
 
     return SanitizeResult(payload=clean, vault=vault,
                           entity_types=[f.entity_type for _, _, fs in work for f in fs])

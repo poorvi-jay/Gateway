@@ -54,10 +54,12 @@ class Vault:
         return matches[0] if matches else None
 
 
-def tokenize(text: str, findings: list[Finding], vault: Vault) -> str:
+def tokenize(text: str, findings: list[Finding], vault: Vault, redacted=frozenset()) -> str:
     # Replace from the end so earlier character offsets stay valid.
     for f in sorted(findings, key=lambda f: f.start, reverse=True):
-        ph = vault.placeholder_for(f.entity_type, f.text)
+        # Redacted values never enter the vault, so they can never be restored.
+        ph = (f"[REDACTED_{f.entity_type}]" if f.entity_type in redacted
+              else vault.placeholder_for(f.entity_type, f.text))
         text = text[: f.start] + ph + text[f.end :]
     return text
 

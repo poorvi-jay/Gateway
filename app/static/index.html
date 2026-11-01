@@ -52,7 +52,8 @@
     background: var(--danger-bg); color: var(--danger-text); font-weight: 600;
   }
   .panels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
-  @media (max-width: 800px) { .panels { grid-template-columns: 1fr; } }
+  .panels.compare { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 800px) { .panels, .panels.compare { grid-template-columns: 1fr; } }
   section { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
   h2 { margin: 0 0 8px; font-size: .95rem; }
   .output { margin: 0; min-height: 3em; white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -64,7 +65,7 @@
 <body>
 <main>
   <h1>PII-Safe LLM Gateway</h1>
-  <p class="lead">Personal data is masked before it reaches the model, then restored in the answer.</p>
+  <p class="lead">Personal data is masked before it reaches the model, then restored in the answer. Demo only: please don't enter real personal data.</p>
 
   <form id="form">
     <label for="input">Your message</label>
@@ -82,7 +83,7 @@
 
   <p id="banner" role="alert" hidden></p>
 
-  <div class="panels" aria-live="polite">
+  <div class="panels" id="panels" aria-live="polite">
     <section>
       <h2>1. You wrote</h2>
       <p class="output empty" id="wrote">Nothing sent yet.</p>
@@ -91,6 +92,11 @@
       <h2>2. The LLM saw</h2>
       <p class="output empty" id="saw">Nothing sent yet.</p>
       <p class="meta" id="found"></p>
+    </section>
+    <section id="gliner" hidden>
+      <h2>NVIDIA GLiNER would mask</h2>
+      <p class="output empty" id="gsaw">Nothing sent yet.</p>
+      <p class="meta" id="gstats"></p>
     </section>
     <section>
       <h2>3. You got back</h2>
@@ -110,7 +116,7 @@
     DATE_OF_BIRTH: "date of birth", PIN_CODE: "PIN code", PASSWORD: "password or code",
     IN_AADHAAR: "Aadhaar number", IN_PAN: "PAN", CREDIT_CARD: "card number",
     IN_PASSPORT: "passport number", IN_VOTER_ID: "voter ID",
-    IN_DRIVING_LICENCE: "driving licence", API_KEY: "API key or token",
+    IN_DRIVING_LICENCE: "driving licence", API_KEY: "API key or token", NATIONAL_ID: "national ID",
   };
   const friendly = (types) => [...new Set(types.map((t) => LABELS[t] || t))].join(", ");
 
@@ -124,7 +130,7 @@
     const target = el(id);
     target.replaceChildren();
     target.classList.remove("empty");
-    text.split(/(<[A-Z][A-Z_]*_\d+>)/).forEach((part, i) => {
+    text.split(/(<[A-Z][A-Z_]*_\d+>|\[REDACTED_[A-Z_]+\])/).forEach((part, i) => {
       if (i % 2) {
         const mark = document.createElement("mark");
         mark.textContent = part;
@@ -151,11 +157,31 @@
 
   const failure = ({ response, data }) => data.error?.message || `Request failed (${response.status})`;
 
+  // Runs beside the real request and never affects it: the model is slow on a CPU.
+  let latest = 0;
+  async function compare(messages) {
+    const run = ++latest;
+    el("gstats").textContent = "";
+    if (!el("gliner").hidden) show("gsaw", "Running on this machine…", true);
+    try {
+      const { data } = await post("/debug/gliner", { messages });
+      if (run !== latest || !data.available) return;
+      el("gliner").hidden = false;
+      el("panels").classList.add("compare");
+      showMasked("gsaw", data.masked);
+      const found = data.entity_types.length ? `Would mask: ${friendly(data.entity_types)}` : "Found nothing";
+      el("gstats").textContent = `${found} · Not sent anywhere · ${data.latency_ms} ms`;
+    } catch (error) {
+      if (run === latest) show("gsaw", "Comparison failed.", true);
+    }
+  }
+
   async function send(event) {
     event.preventDefault();
     const text = el("input").value.trim();
     if (!text) return;
     const messages = [{ role: "user", content: text }];
+    compare(messages);
 
     el("send").disabled = true;
     el("banner").hidden = true;

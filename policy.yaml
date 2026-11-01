@@ -1,9 +1,11 @@
 # What the gateway does with each kind of PII.
 #   tokenize -> replace with a placeholder like <PERSON_1>, restore it in the answer
+#   redact   -> replace with [REDACTED_<TYPE>], never restored
 #   block    -> reject the whole request; this data must never leave
 #   allow    -> do nothing (entity is not scanned for at all)
 #
 # Entity types not listed here are not scanned for.
+# Changing an action needs a server restart.
 
 score_threshold: 0.5      # ignore detections below this confidence
 

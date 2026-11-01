@@ -89,12 +89,12 @@ class Detector:
 
     def _resolve_overlaps(self, findings: list[Finding]) -> list[Finding]:
         """When two matches overlap (e.g. PHONE_NUMBER and IN_PHONE on the same
-        digits), keep one. Priority: 'block' entities first (never let a
-        weaker label hide something we must block), then higher score, then
+        digits), keep one. Priority: 'block' and 'redact' entities first (never
+        let a weaker label hide something stricter), then higher score, then
         longer span."""
         def priority(f: Finding):
-            is_block = self.policy.action_for(f.entity_type) == "block"
-            return (is_block, f.score, f.end - f.start)
+            strict = self.policy.action_for(f.entity_type) in ("block", "redact")
+            return (strict, f.score, f.end - f.start)
 
         kept: list[Finding] = []
         for f in sorted(findings, key=priority, reverse=True):

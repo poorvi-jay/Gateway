@@ -1,0 +1,4 @@
+# Optional: the NVIDIA GLiNER comparison on the demo page. Downloads about 3 GB.
+# Install the CPU build of PyTorch first:
+#   pip install torch==2.15.0 --index-url https://download.pytorch.org/whl/cpu
+gliner==0.2.30

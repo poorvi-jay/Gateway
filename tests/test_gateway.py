@@ -18,7 +18,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 import app.main as gw  # noqa: E402
 from app.detector import Finding, _finding  # noqa: E402
-from app.policy import Policy  # noqa: E402
+from app.policy import Policy, load_policy  # noqa: E402
 from app.recognizers import verhoeff_valid  # noqa: E402
 from app.sanitizer import sanitize_request  # noqa: E402
 from app.tokenizer import Vault, rehydrate, repair  # noqa: E402
@@ -118,6 +118,53 @@ def test_sensitive_ids_are_blocked(client, fake_llm, text, entity):
     assert r.json()["error"]["code"] == "pii_blocked"
     assert entity in r.json()["error"]["message"]
     assert "payload" not in fake_llm  # LLM was never called
+
+
+@pytest.mark.parametrize("action,sent,answer", [
+    ("tokenize", "<IN_AADHAAR_1>", VALID_AADHAAR),
+    ("redact", "[REDACTED_IN_AADHAAR]", "[REDACTED_IN_AADHAAR]"),
+])
+def test_aadhaar_can_be_unblocked_by_policy(client, fake_llm, monkeypatch, action, sent, answer):
+    monkeypatch.setitem(client.app.state.policy.actions, "IN_AADHAAR", action)
+    r = chat(client, f"My Aadhaar is {VALID_AADHAAR}")
+    assert r.status_code == 200
+    assert fake_llm["user_text"] == f"My Aadhaar is {sent}"
+    assert VALID_AADHAAR not in json.dumps(fake_llm["payload"])
+    assert r.json()["choices"][0]["message"]["content"] == f"Echo: My Aadhaar is {answer}"
+
+
+def test_redact_covers_every_mention_and_is_never_restored():
+    payload = {"messages": [{"role": "user", "content": "Ask Priya Nair, then Priya"}]}
+    detector = StubDetector({"Ask Priya Nair, then Priya": ["Priya Nair"]})
+    out = sanitize_request(payload, detector, Policy(actions={"PERSON": "redact"}))
+    assert out.payload["messages"][0]["content"] == "Ask [REDACTED_PERSON], then [REDACTED_PERSON]"
+    assert len(out.vault) == 0
+
+
+class FakeGliner:
+    def detect(self, text):
+        s = text.index("Rahul")
+        return [Finding("PERSON", s, s + 5, 0.9, "Rahul")]
+
+
+def test_gliner_comparison_is_off_by_default(client):
+    body = {"messages": [{"role": "user", "content": "hi"}]}
+    assert client.post("/debug/gliner", json=body).json() == {"available": False}
+
+
+def test_gliner_comparison_masks_text_and_never_calls_llm(client, fake_llm, monkeypatch):
+    monkeypatch.setattr(client.app.state, "gliner", FakeGliner())
+    body = {"messages": [{"role": "user", "content": "Call Rahul"}]}
+    data = client.post("/debug/gliner", json=body).json()
+    assert data["masked"] == "Call <PERSON_1>" and data["entity_types"] == ["PERSON"]
+    assert "payload" not in fake_llm
+
+
+def test_unknown_policy_action_refuses_to_start(tmp_path):
+    bad = tmp_path / "policy.yaml"
+    bad.write_text("entities:\n  IN_AADHAAR: mask\n")
+    with pytest.raises(ValueError):
+        load_policy(bad)
 
 
 @pytest.mark.parametrize("text,entity", [
