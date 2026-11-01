@@ -165,12 +165,18 @@ def sanitize_request(payload: dict, detector: Detector, policy: Policy) -> Sanit
     known = {(f.entity_type, part) for f in all_findings
              for part in f.text.split("\n") if part.strip()}
     known = sorted(known, key=lambda k: len(k[1]), reverse=True)
+    names = _name_parts(known)
+    # NER can find "Priya" by itself too; it is still the same <PERSON_1>.
+    def full_value(etype: str, value: str) -> str:
+        return names.get(value, value) if etype == "PERSON" else value
+    for f in all_findings:
+        f.text = full_value(f.entity_type, f.text)
     # Whole words only: "Raj" must not eat the start of "Rajasthan".
-    patterns = [(etype, value, re.compile(rf"(?<!\w){re.escape(value)}(?!\w)", re.IGNORECASE))
+    patterns = [(etype, full_value(etype, value),
+                 re.compile(rf"(?<!\w){re.escape(value)}(?!\w)", re.IGNORECASE))
                 for etype, value in known]
     # After the full values, so "Priya Nair" is masked whole before "Nair" is tried.
-    patterns += [("PERSON", value, _name_word_pattern(word))
-                 for word, value in _name_parts(known).items()]
+    patterns += [("PERSON", value, _name_word_pattern(word)) for word, value in names.items()]
     for i, (get, set_, findings) in enumerate(work):
         text = get()
         extra = []

@@ -73,6 +73,8 @@
       <button type="button" data-text="Write a two-line reminder to Rahul Sharma (rahul.s@gmail.com), phone 9876543210.">Name, email, phone</button>
       <button type="button" data-text="Verify Aadhaar 4987 1234 5679">Aadhaar</button>
       <button type="button" data-text="Charge card 4111 1111 1111 1111">Credit card</button>
+      <button type="button" data-text="Refund Priya Nair to account number 123456789012, IFSC HDFC0001234. Tell Priya once it is done.">Bank details</button>
+      <button type="button" data-text="Why does sk-proj-abc123def456ghi789jkl012 return a 401?">API key</button>
       <button type="button" data-text="Explain how binary search works in one sentence.">No personal data</button>
       <button type="submit" id="send">Send</button>
     </div>
@@ -100,6 +102,17 @@
 
 <script>
   const el = (id) => document.getElementById(id);
+
+  const LABELS = {
+    PERSON: "name", LOCATION: "place", EMAIL_ADDRESS: "email address",
+    IN_PHONE: "phone number", PHONE_NUMBER: "phone number", IP_ADDRESS: "IP address",
+    UPI_ID: "UPI ID", IN_IFSC: "IFSC code", BANK_ACCOUNT: "bank account number",
+    DATE_OF_BIRTH: "date of birth", PIN_CODE: "PIN code", PASSWORD: "password or code",
+    IN_AADHAAR: "Aadhaar number", IN_PAN: "PAN", CREDIT_CARD: "card number",
+    IN_PASSPORT: "passport number", IN_VOTER_ID: "voter ID",
+    IN_DRIVING_LICENCE: "driving licence", API_KEY: "API key or token",
+  };
+  const friendly = (types) => [...new Set(types.map((t) => LABELS[t] || t))].join(", ");
 
   // textContent only: model output must never be parsed as HTML.
   function show(id, text, empty = false) {
@@ -156,15 +169,15 @@
       if (!sanitized.response.ok) throw new Error(failure(sanitized));
 
       if (sanitized.data.blocked) {
-        showBanner(`Blocked: contains ${sanitized.data.entity_types.join(", ")}. Nothing was sent to the LLM.`);
+        showBanner(`Blocked: this message contains: ${friendly(sanitized.data.entity_types)}. Nothing was sent to the LLM.`);
         show("saw", "Nothing. The request was stopped at the gateway.", true);
         show("got", "No answer, because nothing was sent.", true);
         return;
       }
 
       showMasked("saw", sanitized.data.sent_to_llm[0].content);
-      const types = [...new Set(sanitized.data.entity_types)];
-      el("found").textContent = types.length ? `Masked: ${types.join(", ")}` : "No personal data found";
+      const types = sanitized.data.entity_types;
+      el("found").textContent = types.length ? `Masked: ${friendly(types)}` : "No personal data found";
 
       const chat = await post("/v1/chat/completions", { model: "any", messages });
       if (!chat.response.ok) throw new Error(failure(chat));

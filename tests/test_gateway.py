@@ -59,6 +59,12 @@ def test_demo_page_is_served(client):
     assert r.status_code == 200 and "text/html" in r.headers["content-type"]
 
 
+def test_demo_page_has_a_label_for_every_scanned_type(client):
+    page = client.get("/").text
+    missing = [e for e in client.app.state.policy.scanned_entities if f"{e}:" not in page]
+    assert not missing
+
+
 # ---------------------------------------------------------------- core flow
 def test_pii_never_reaches_llm(client, fake_llm):
     r = chat(client, "Email Rahul Sharma at rahul.s@gmail.com or call 9876543210")
@@ -460,6 +466,11 @@ def sanitize_names(texts, last):
 def test_part_of_a_name_is_masked_as_that_person():
     assert sanitize_names({"Priya Nair": ["Priya Nair"]},
                           "Ask Priya, Ms Nair or PRIYA") == "Ask <PERSON_1>, Ms <PERSON_1> or <PERSON_1>"
+
+
+def test_short_name_found_by_ner_is_the_same_person():
+    texts = {"Refund Priya Nair": ["Priya Nair"], "Tell Priya": ["Priya"]}
+    assert sanitize_names(texts, "Ask Priya") == "Ask <PERSON_1>"
 
 
 def test_name_part_shared_by_two_people_is_not_merged():
