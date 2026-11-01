@@ -74,7 +74,7 @@ python -m eval.evaluate    # precision / recall / latency
 | `app/main.py` | HTTP layer: OpenAI-compatible endpoint, auth, fail-closed error handling, upstream call |
 | `app/sanitizer.py` | Walks every text field in the request, detects, blocks or tokenizes; processes the response |
 | `app/detector.py` | Presidio engine combining regex recognizers + spaCy NER; resolves overlapping matches |
-| `app/recognizers.py` | Indian identifiers: Aadhaar (Verhoeff checksum), PAN, mobile numbers, UPI IDs |
+| `app/recognizers.py` | Indian identifiers (Aadhaar with Verhoeff checksum, PAN, passport, voter ID, driving licence, mobile numbers, UPI IDs, IFSC), bank accounts, dates of birth, PIN codes, API keys and passwords |
 | `app/tokenizer.py` | Per-request vault: placeholder ↔ value mapping, tokenize and rehydrate |
 | `app/policy.py` + `policy.yaml` | Per-entity action: `tokenize`, `block` or `allow` |
 | `app/audit.py` | JSON-lines audit log with entity types and counts only |
@@ -85,12 +85,18 @@ python -m eval.evaluate    # precision / recall / latency
    Content that can't be inspected (images) is rejected rather than passed through.
 2. **Detect** with two layers in one engine:
    - *Regex + checksums* for structured PII: emails, IPs, cards (Luhn),
-     Aadhaar (Verhoeff), PAN, Indian mobiles, UPI IDs. Fast and deterministic;
-     checksums reject look-alike numbers such as order IDs.
+     Aadhaar (Verhoeff), PAN, Indian mobiles, UPI IDs, vendor API keys. Fast and
+     deterministic; checksums reject look-alike numbers such as order IDs.
+   - *Regex + context words* for shapes too common to trust alone. A passport,
+     voter ID, bank account, date of birth or PIN code only counts next to a
+     word like "passport" or "DOB", so order numbers and ordinary dates pass.
+     Passwords have no shape, so the value after "password:" or "OTP is" is masked.
    - *spaCy NER* for unstructured PII with no fixed shape: names, places.
 3. **Known-value propagation.** A value detected once is masked everywhere it
    appears in the request, so an inconsistent NER miss in a later message
    doesn't leak a name that was caught earlier. (A test caught exactly this.)
+   Words of a full name count too: after "Priya Nair", a lone "Priya" or "Nair"
+   becomes the same `<PERSON_1>`, unless two people share that word.
 4. **Policy.** If any `block` entity is present the request is rejected and the
    LLM is never called. Otherwise, values are replaced with placeholders.
 5. **Consistent placeholders.** The same value gets the same placeholder across
@@ -126,17 +132,17 @@ python -m eval.evaluate    # precision / recall / latency
 
 ## Evaluation
 
-`python -m eval.evaluate` on 40 hand-labelled sentences (44 PII spans, 10
+`python -m eval.evaluate` on 52 hand-labelled sentences (55 PII spans, 13
 sentences with none, Indian names and identifiers):
 
 | Model | Recall | Precision | Mean latency / message |
 |---|---|---|---|
-| `en_core_web_lg` | **100%** | 100% | ~15 ms |
-| `en_core_web_sm` | 84% | 92% | ~15 ms |
+| `en_core_web_lg` | **100%** | 100% | ~24 ms |
+| `en_core_web_sm` | 87% | 92% | ~22 ms |
 
-Regex-based types (emails, phones, cards, Aadhaar, PAN, UPI, IPs) scored 100%
-with both models; all misses with the small model were names, which shows why
-the NER model choice matters. Measured on CPU.
+Regex-based types scored 100% with both models; all misses with the small model
+were names and places, which shows why the NER model choice matters. Measured
+on CPU.
 
 **Caveat:** this dataset is small and was written by the same person who wrote
 the detectors, so these numbers are optimistic. A real evaluation would use an
@@ -167,8 +173,15 @@ plus real anonymised samples).
 - **Images and files** are rejected. Next: OCR → same detection pipeline.
 - **Other top-level fields.** `messages`, `user` and `tools`/`functions` are
   scanned; anything else, such as `metadata`, is forwarded as it is.
-- **Partial names.** If "Priya Nair" is detected, a lone "Priya" elsewhere is
-  masked only if NER finds it on its own.
+- **Partial names.** A lone "priya" in lowercase is masked only if NER finds it
+  on its own: matching name words in any case would mask "will" for Will Smith.
+- **Context words.** A voter ID with no word like "voter" nearby is not flagged,
+  and a phrase like "the secret is out" is masked as a password. Addresses are
+  covered only as place names and PIN codes, and pre-2019 licence formats vary
+  by state. A label-conditioned model such as
+  [GLiNER2-PII](https://huggingface.co/fastino/gliner2-privacy-filter-PII-multi)
+  (Apache 2.0, local) is the likely third layer, but it would need measuring on
+  CPU first and would not replace checksums for block decisions.
 - **Multi-turn vault.** Placeholders are consistent within a request (which
   carries the full chat history), but not across separate requests. A
   session-scoped, encrypted Redis vault with a TTL would fix that.

@@ -38,3 +38,15 @@
 {"text": "Refactor this Python function to use list comprehensions.", "pii": []}
 {"text": "Version 2.4.1 fixed the memory leak in the parser.", "pii": []}
 {"text": "Give me five tips to improve my resume.", "pii": []}
+{"text": "Applicant passport number is K1234567, issued in Delhi.", "pii": [["IN_PASSPORT", "K1234567"], ["LOCATION", "Delhi"]]}
+{"text": "Her voter ID is ABC1234567 as per the card.", "pii": [["IN_VOTER_ID", "ABC1234567"]]}
+{"text": "Driving licence MH12 20110012345 expires soon.", "pii": [["IN_DRIVING_LICENCE", "MH12 20110012345"]]}
+{"text": "Send the refund to account number 123456789012, IFSC HDFC0001234.", "pii": [["BANK_ACCOUNT", "123456789012"], ["IN_IFSC", "HDFC0001234"]]}
+{"text": "Date of birth: 12/03/1990. Please confirm.", "pii": [["DATE_OF_BIRTH", "12/03/1990"]]}
+{"text": "Deliver to the address with PIN code 560001.", "pii": [["PIN_CODE", "560001"]]}
+{"text": "The login is admin and the password is hunter2.", "pii": [["PASSWORD", "hunter2"]]}
+{"text": "Why does sk-proj-abc123def456ghi789jkl012 return a 401?", "pii": [["API_KEY", "sk-proj-abc123def456ghi789jkl012"]]}
+{"text": "Set the AWS key AKIAIOSFODNN7EXAMPLE in the config.", "pii": [["API_KEY", "AKIAIOSFODNN7EXAMPLE"]]}
+{"text": "Order 123456789012 shipped on 12/03/2026 to warehouse 560001.", "pii": []}
+{"text": "Batch ABC1234567 and ticket K1234567 are closed.", "pii": []}
+{"text": "A password is required to open the shopping portal.", "pii": []}

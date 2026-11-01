@@ -21,6 +21,9 @@ from .tokenizer import Vault, rehydrate, repair, tokenize
 # would break the tool the model is asked to call.
 SCHEMA_KEYS = {"type", "name", "required", "$ref", "format", "pattern"}
 
+# Words in a name that identify nobody on their own.
+TITLES = {"mrs", "shri", "smt", "sri", "prof"}
+
 # shortcut: never evicted and assumes one policy per process, fine for the
 # handful of tool sets an app uses; add an LRU if clients generate them.
 _clean_tools: set[str] = set()
@@ -103,6 +106,24 @@ def _tool_slots(payload: dict):
             yield from _schema_slots(payload[key])
 
 
+def _name_parts(known: list[tuple[str, str]]) -> dict[str, str]:
+    """Each word of a detected full name -> the value to mask it as: the full
+    name, so a lone "Priya" shares <PERSON_1>, unless two people share the word."""
+    owners: dict[str, set[str]] = {}
+    for etype, value in known:
+        words = [w.strip(".,") for w in value.split()]
+        if etype == "PERSON" and len(words) > 1:
+            for word in words:
+                if len(word) > 2 and word.lower() not in TITLES:
+                    owners.setdefault(word, set()).add(value)
+    return {w: next(iter(names)) if len(names) == 1 else w for w, names in owners.items()}
+
+
+def _name_word_pattern(word: str) -> re.Pattern:
+    # Case-sensitive, unlike full values: "Will Smith" must not mask "you will".
+    return re.compile(rf"(?<!\w)(?:{re.escape(word)}|{re.escape(word.upper())})(?!\w)")
+
+
 def sanitize_request(payload: dict, detector: Detector, policy: Policy) -> SanitizeResult:
     clean = copy.deepcopy(payload)  # never mutate the caller's object
     vault = Vault()
@@ -144,12 +165,17 @@ def sanitize_request(payload: dict, detector: Detector, policy: Policy) -> Sanit
     known = {(f.entity_type, part) for f in all_findings
              for part in f.text.split("\n") if part.strip()}
     known = sorted(known, key=lambda k: len(k[1]), reverse=True)
+    # Whole words only: "Raj" must not eat the start of "Rajasthan".
+    patterns = [(etype, value, re.compile(rf"(?<!\w){re.escape(value)}(?!\w)", re.IGNORECASE))
+                for etype, value in known]
+    # After the full values, so "Priya Nair" is masked whole before "Nair" is tried.
+    patterns += [("PERSON", value, _name_word_pattern(word))
+                 for word, value in _name_parts(known).items()]
     for i, (get, set_, findings) in enumerate(work):
         text = get()
         extra = []
-        for etype, value in known:
-            # Whole words only: "Raj" must not eat the start of "Rajasthan".
-            for m in re.finditer(rf"(?<!\w){re.escape(value)}(?!\w)", text, re.IGNORECASE):
+        for etype, value, pattern in patterns:
+            for m in pattern.finditer(text):
                 start, end = m.span()
                 if not any(start < f.end and f.start < end for f in findings + extra):
                     extra.append(Finding(etype, start, end, 1.0, value))

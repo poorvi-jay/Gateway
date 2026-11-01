@@ -113,6 +113,64 @@ def test_sensitive_ids_are_blocked(client, fake_llm, text, entity):
     assert "payload" not in fake_llm  # LLM was never called
 
 
+@pytest.mark.parametrize("text,entity", [
+    ("My passport number is K1234567", "IN_PASSPORT"),
+    ("K1234567 is my passport", "IN_PASSPORT"),
+    ("Voter ID ABC1234567", "IN_VOTER_ID"),
+    ("Driving licence MH12 20110012345", "IN_DRIVING_LICENCE"),
+    ("Use sk-proj-abc123def456ghi789jkl012", "API_KEY"),
+    ("key = AKIAIOSFODNN7EXAMPLE", "API_KEY"),
+    ("token rzp_live_abcdef1234567890", "API_KEY"),
+    ("-----BEGIN RSA PRIVATE KEY-----", "API_KEY"),
+    ("eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.abc123def456", "API_KEY"),
+    ("Authorization: Bearer abcdef123456abcdef123456", "API_KEY"),
+])
+def test_ids_and_keys_are_blocked(client, fake_llm, text, entity):
+    r = chat(client, text)
+    assert r.status_code == 400 and entity in r.json()["error"]["message"]
+    assert "payload" not in fake_llm
+
+
+@pytest.mark.parametrize("text,secret,placeholder", [
+    ("IFSC is HDFC0001234", "HDFC0001234", "<IN_IFSC_1>"),
+    ("Pay to account number 123456789012", "123456789012", "<BANK_ACCOUNT_1>"),
+    ("A/C no 123456789012", "123456789012", "<BANK_ACCOUNT_1>"),
+    ("Your OTP is 482913.", "482913", "<PASSWORD_1>."),
+    ("CVV 123", "123", "<PASSWORD_1>"),
+    ("Date of birth: 12/03/1990", "12/03/1990", "<DATE_OF_BIRTH_1>"),
+    ("DOB 1990-03-12", "1990-03-12", "<DATE_OF_BIRTH_1>"),
+    ("She was born on 12 March 1990", "12 March 1990", "<DATE_OF_BIRTH_1>"),
+    ("PIN code 560001", "560001", "<PIN_CODE_1>"),
+    ("my password is hunter2", "hunter2", "<PASSWORD_1>"),
+    ('{"password": "S3cret!x"}', "S3cret!x", "<PASSWORD_1>"),
+    ("UPI PIN: 123456", "123456", "<PASSWORD_1>"),
+])
+def test_new_types_are_tokenized(client, fake_llm, text, secret, placeholder):
+    chat(client, text)
+    assert secret not in fake_llm["user_text"] and placeholder in fake_llm["user_text"]
+
+
+@pytest.mark.parametrize("text", [
+    "The meeting moved to 12/03/2026",       # dates stay allowed without context
+    "Order 123456789012 has shipped",        # digits alone are not an account
+    "Shopping cart 560001 is empty",         # "pin" must not match inside "shopping"
+    "Ticket K1234567 and batch ABC1234567",  # ID shapes alone must not block
+    "Password is required for this form",
+    "Send the token issue logs today",       # "is" must not match inside "issue"
+    "The task-management-system-for-teams is live",
+])
+def test_lookalikes_pass_untouched(client, fake_llm, text):
+    assert chat(client, text).status_code == 200
+    assert fake_llm["user_text"] == text
+
+
+def test_password_keyword_stays_readable(client, fake_llm):
+    fake_llm["reply"] = "Your password is <PASSWORD_1>."
+    r = chat(client, "password: hunter2")
+    assert fake_llm["user_text"] == "password: <PASSWORD_1>"
+    assert r.json()["choices"][0]["message"]["content"] == "Your password is hunter2."
+
+
 def test_random_12_digits_not_aadhaar(client, fake_llm):
     # Fails the Verhoeff checksum, so it's an order number, not an Aadhaar.
     assert not verhoeff_valid("234123412345")
@@ -384,6 +442,27 @@ def test_propagation_matches_whole_words_only():
                + [{"role": "user", "content": "Back from Rajasthan"}]}
     out = sanitize_request(payload, StubDetector(texts), Policy(actions={"PERSON": "tokenize"}))
     assert out.payload["messages"][2]["content"] == "Back from Rajasthan"
+
+
+def sanitize_names(texts, last):
+    payload = {"messages": [{"role": "user", "content": t} for t in [*texts, last]]}
+    out = sanitize_request(payload, StubDetector(texts), Policy(actions={"PERSON": "tokenize"}))
+    return out.payload["messages"][-1]["content"]
+
+
+def test_part_of_a_name_is_masked_as_that_person():
+    assert sanitize_names({"Priya Nair": ["Priya Nair"]},
+                          "Ask Priya, Ms Nair or PRIYA") == "Ask <PERSON_1>, Ms <PERSON_1> or <PERSON_1>"
+
+
+def test_name_part_shared_by_two_people_is_not_merged():
+    last = sanitize_names({"Priya Nair": ["Priya Nair"], "Priya Menon": ["Priya Menon"]}, "Ask Priya")
+    assert "Priya" not in last and last not in ("Ask <PERSON_1>", "Ask <PERSON_2>")
+
+
+def test_name_parts_skip_lowercase_words_and_titles():
+    assert sanitize_names({"Will Smith": ["Will Smith"]}, "It will rain") == "It will rain"
+    assert sanitize_names({"Dr Asha Rao": ["Dr Asha Rao"]}, "See Dr Lee") == "See Dr Lee"
 
 
 # ---------------------------------------------------------------- unit

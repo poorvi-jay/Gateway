@@ -2,7 +2,8 @@
 PII detection: two layers combined in one Presidio AnalyzerEngine.
 
   Layer 1 - regex + checksum recognizers (emails, cards via Luhn, Aadhaar via
-            Verhoeff, PAN, phones, UPI, IPs). Fast and deterministic.
+            Verhoeff, PAN, phones, UPI, IPs, other Indian IDs, secrets). Fast
+            and deterministic.
   Layer 2 - spaCy NER model for things with no fixed shape (names, places).
 
 Presidio runs both and returns every match with a confidence score; this module
@@ -13,6 +14,7 @@ import re
 from dataclasses import dataclass
 
 from presidio_analyzer import AnalyzerEngine
+from presidio_analyzer.context_aware_enhancers import LemmaContextAwareEnhancer
 from presidio_analyzer.nlp_engine import NlpEngineProvider
 
 from .policy import Policy
@@ -47,7 +49,13 @@ class Detector:
                 "models": [{"lang_code": "en", "model_name": model}],
             }
         ).create_engine()
-        self.analyzer = AnalyzerEngine(nlp_engine=nlp_engine, supported_languages=["en"])
+        self.analyzer = AnalyzerEngine(
+            nlp_engine=nlp_engine,
+            supported_languages=["en"],
+            # Whole words, or "pin" matches "shopping". Suffix for "A1234567 is my passport".
+            context_aware_enhancer=LemmaContextAwareEnhancer(
+                context_suffix_count=3, context_matching_mode="whole_word"),
+        )
         for rec in custom_recognizers():
             self.analyzer.registry.add_recognizer(rec)
 

@@ -1,10 +1,11 @@
 """
-Custom PII recognizers for Indian identifiers.
+Custom PII recognizers for Indian identifiers and secrets.
 
 Presidio ships with recognizers for emails, credit cards, IPs etc., but not for
 Aadhaar, PAN, UPI IDs or Indian mobile numbers. Each recognizer below is a
 regex (fast, deterministic) plus, where the format allows it, a checksum
 validator that rejects random numbers that merely *look* like the identifier.
+Presidio compiles these case-insensitively.
 """
 from presidio_analyzer import Pattern, PatternRecognizer
 
@@ -119,10 +120,74 @@ class UpiRecognizer(PatternRecognizer):
         )
 
 
+# Below the score threshold on purpose: these shapes are too common to trust
+# alone (any 6 digits could be a PIN code), so they only count next to a context
+# word, which adds 0.35.
+NEEDS_CONTEXT = 0.3
+
+_MONTH = r"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*"
+_DATE = (
+    r"\b(?:\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}|\d{4}-\d{2}-\d{2}"
+    rf"|\d{{1,2}}(?:st|nd|rd|th)?\s+{_MONTH},?\s+\d{{4}}"
+    rf"|{_MONTH}\s+\d{{1,2}}(?:st|nd|rd|th)?,?\s+\d{{4}})\b"
+)
+
+# Vendor key prefixes, a JWT, or a PEM private key header. The digit lookahead
+# keeps long hyphenated words starting "sk-" out, as a match blocks the request.
+_API_KEY = (
+    r"\b(?:sk-(?=[\w-]*\d)[\w-]{20,}|gsk_\w{20,}|AKIA[0-9A-Z]{16}|gh[pousr]_\w{36,}"
+    r"|github_pat_\w{22,}|AIza[\w-]{35}|xox[abprs]-[\w-]{10,}|rzp_(?:live|test)_\w{10,}"
+    r"|eyJ[\w-]{8,}\.eyJ[\w-]{8,}\.[\w-]{8,})"
+    r"|-----BEGIN [A-Z ]*PRIVATE KEY-----"
+    r"|(?<=\bBearer\s+)[\w.~+/-]{20,}"
+)
+
+# Passwords have no shape, so match the value after a keyword ("password: x",
+# '"otp": "123456"', "my password is x"). Only the value is masked.
+_SECRET_WORD = (
+    r"(?:pass(?:word|wd|code|phrase)|pwd|secret|token|otp|cvv"
+    r"|(?:api|access|auth|secret)[\s_-]?(?:key|token)|(?:upi|atm|card)\s+pin)"
+)
+_NOT_A_SECRET = (
+    r"(?:required|incorrect|wrong|correct|invalid|valid|expired|empty|missing|not"
+    r"|the|an?|too|very|true|false|null|none)\b"
+)
+_SECRET_VALUE = (
+    rf"(?<=\b{_SECRET_WORD}[\"']?(?:\s+is\s+|\s*[:=]\s*)[\"']?)"
+    rf"(?!{_NOT_A_SECRET})[^\s\"',;]{{2,}}[^\s\"',;.]"
+    # Short numeric codes are often written with nothing between: "CVV 123".
+    r"|(?<=\b(?:cvv|otp|(?:upi|atm|card)\s+pin)\s+)\d{3,8}\b"
+)
+
+
+def _pattern(entity: str, regex: str, score: float, context=()) -> PatternRecognizer:
+    return PatternRecognizer(supported_entity=entity, context=list(context),
+                             patterns=[Pattern(entity.lower(), regex, score)])
+
+
 def custom_recognizers():
     return [
         AadhaarRecognizer(),
         PanRecognizer(),
         IndianPhoneRecognizer(),
         UpiRecognizer(),
+        # A false match on these blocks the request, so they need context too.
+        _pattern("IN_PASSPORT", r"\b[A-PR-WY][1-9]\d\s?\d{4}[1-9]\b", NEEDS_CONTEXT, ["passport"]),
+        _pattern("IN_VOTER_ID", r"\b[A-Z]{3}\d{7}\b", NEEDS_CONTEXT,
+                 ["voter", "epic", "election"]),
+        # State, RTO, year of issue, serial. Old pre-2019 formats vary by state.
+        _pattern("IN_DRIVING_LICENCE", r"\b[A-Z]{2}[ -]?\d{2}[ -]?(?:19|20)\d{2}[ -]?\d{7}\b", 0.6,
+                 ["licence", "license", "dl", "driving"]),
+        _pattern("IN_IFSC", r"\b[A-Z]{4}0[A-Z0-9]{6}\b", 0.6, ["ifsc", "bank", "branch"]),
+        _pattern("BANK_ACCOUNT", r"\b\d{9,18}\b", NEEDS_CONTEXT,
+                 ["account", "acct", "ac", "bank", "beneficiary", "ifsc"]),
+        # "A/C" is split into separate tokens, so context words can't see it.
+        _pattern("BANK_ACCOUNT", r"(?<=\ba/c\.?\s*(?:no\.?|number)?[\s:]*)\d{9,18}\b", 0.7),
+        # "born" lemmatizes to "bear".
+        _pattern("DATE_OF_BIRTH", _DATE, NEEDS_CONTEXT,
+                 ["dob", "d.o.b", "d.o.b.", "birth", "birthdate", "birthday", "born", "bear"]),
+        _pattern("PIN_CODE", r"\b[1-9]\d{2}\s?\d{3}\b", NEEDS_CONTEXT,
+                 ["pin", "pincode", "postal", "postcode", "zip", "address"]),
+        _pattern("API_KEY", _API_KEY, 0.9),
+        _pattern("PASSWORD", _SECRET_VALUE, 0.8),
     ]

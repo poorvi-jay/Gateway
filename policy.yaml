@@ -12,9 +12,18 @@ entities:
   IN_AADHAAR: block
   CREDIT_CARD: block
   IN_PAN: block
+  IN_PASSPORT: block
+  IN_VOTER_ID: block
+  IN_DRIVING_LICENCE: block
+  API_KEY: block
 
   # --- replaced with placeholders, restored in the answer ---
   PERSON: tokenize
+  IN_IFSC: tokenize
+  BANK_ACCOUNT: tokenize
+  DATE_OF_BIRTH: tokenize
+  PIN_CODE: tokenize
+  PASSWORD: tokenize        # found by keyword, so a false match must not block
   EMAIL_ADDRESS: tokenize
   IN_PHONE: tokenize
   PHONE_NUMBER: tokenize
