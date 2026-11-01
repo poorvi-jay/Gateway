@@ -5,4 +5,5 @@ presidio-analyzer>=2.2
 pyyaml>=6.0
 python-dotenv>=1.0   # lets uvicorn --env-file read .env
 pytest>=8.0
+Faker==40.44.0   # only for eval/synthetic.py; pinned so seeded data stays the same
 openai>=1.30   # only for examples/client_demo.py

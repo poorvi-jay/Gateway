@@ -1,0 +1,200 @@
+{"text": "Please send the invoice to Dev Kumer at tandonshivani@example.com.", "pii": [["PERSON", "Dev Kumer"], ["EMAIL_ADDRESS", "tandonshivani@example.com"]]}
+{"text": "Call Ladli on 07580174324 before noon.", "pii": [["PERSON", "Ladli"], ["IN_PHONE", "07580174324"]]}
+{"text": "Girindra Sura from Pali raised a complaint about the delivery.", "pii": [["PERSON", "Girindra Sura"], ["LOCATION", "Pali"]]}
+{"text": "Refund the amount to sagate@paytm for customer Amaira Karnik.", "pii": [["UPI_ID", "sagate@paytm"], ["PERSON", "Amaira Karnik"]]}
+{"text": "My Aadhaar number is 2628-5130-6080, please update it.", "pii": [["IN_AADHAAR", "2628-5130-6080"]]}
+{"text": "PAN FKAPF4422F belongs to Eesha Balasubramanian.", "pii": [["IN_PAN", "FKAPF4422F"], ["PERSON", "Eesha Balasubramanian"]]}
+{"text": "Charge 4080 6360 8377 8353 for the annual plan.", "pii": [["CREDIT_CARD", "4080 6360 8377 8353"]]}
+{"text": "Customer passport no: K1499165", "pii": [["IN_PASSPORT", "K1499165"]]}
+{"text": "Voter ID DIS7948635 was verified at the camp.", "pii": [["IN_VOTER_ID", "DIS7948635"]]}
+{"text": "DL number KL93 20223743865, valid till next year.", "pii": [["IN_DRIVING_LICENCE", "KL93 20223743865"]]}
+{"text": "Transfer to A/C 12119543839, IFSC HDFC0389951.", "pii": [["BANK_ACCOUNT", "12119543839"], ["IN_IFSC", "HDFC0389951"]]}
+{"text": "DOB: July 18, 1961", "pii": [["DATE_OF_BIRTH", "July 18, 1961"]]}
+{"text": "Ship to Jaunpur, PIN 440851.", "pii": [["LOCATION", "Jaunpur"], ["PIN_CODE", "440851"]]}
+{"text": "The server at 169.106.138.196 belongs to Quincy Minhas.", "pii": [["IP_ADDRESS", "169.106.138.196"], ["PERSON", "Quincy Minhas"]]}
+{"text": "Office landline is +915868344978.", "pii": [["PHONE_NUMBER", "+915868344978"]]}
+{"text": "hi this is bakhshi srinivasan, my number is +91 94335 66402", "pii": [["PERSON", "bakhshi srinivasan"], ["IN_PHONE", "+91 94335 66402"]]}
+{"text": "{\"customer\": \"Netra Sachdeva\", \"email\": \"jeevikaprasad@example.org\"}", "pii": [["PERSON", "Netra Sachdeva"], ["EMAIL_ADDRESS", "jeevikaprasad@example.org"]]}
+{"text": "login password: *oFDMAyX8Z04", "pii": [["PASSWORD", "*oFDMAyX8Z04"]]}
+{"text": "Why is AKIAOECOWYAYBWLTHGUE returning a 401?", "pii": [["API_KEY", "AKIAOECOWYAYBWLTHGUE"]]}
+{"text": "Azaan and Megha will join the call from Purnia.", "pii": [["PERSON", "Azaan"], ["PERSON", "Megha"], ["LOCATION", "Purnia"]]}
+{"text": "Order 0151274340 was shipped on 01 November 1949.", "pii": []}
+{"text": "Batch IUG2799492 passed quality checks.", "pii": []}
+{"text": "We sold 408 units in Q3.", "pii": []}
+{"text": "Please reset your password from the settings page.", "pii": []}
+{"text": "The meeting is on 07-01-1996 in the main hall.", "pii": []}
+{"text": "Please send the invoice to Jeremiah Kala at mohanekavir@example.org.", "pii": [["PERSON", "Jeremiah Kala"], ["EMAIL_ADDRESS", "mohanekavir@example.org"]]}
+{"text": "Call Dayita on +91 67176 52975 before noon.", "pii": [["PERSON", "Dayita"], ["IN_PHONE", "+91 67176 52975"]]}
+{"text": "Nathan Saha from Bikaner raised a complaint about the delivery.", "pii": [["PERSON", "Nathan Saha"], ["LOCATION", "Bikaner"]]}
+{"text": "Refund the amount to baradteerth@okaxis for customer Onveer Upadhyay.", "pii": [["UPI_ID", "baradteerth@okaxis"], ["PERSON", "Onveer Upadhyay"]]}
+{"text": "My Aadhaar number is 8686 4712 0009, please update it.", "pii": [["IN_AADHAAR", "8686 4712 0009"]]}
+{"text": "PAN TKGPA8089O belongs to Kritika Iyer.", "pii": [["IN_PAN", "TKGPA8089O"], ["PERSON", "Kritika Iyer"]]}
+{"text": "Charge 4139693716487051 for the annual plan.", "pii": [["CREDIT_CARD", "4139693716487051"]]}
+{"text": "Customer passport no: W9020584", "pii": [["IN_PASSPORT", "W9020584"]]}
+{"text": "Voter ID MYK5064218 was verified at the camp.", "pii": [["IN_VOTER_ID", "MYK5064218"]]}
+{"text": "DL number DL42 20053523129, valid till next year.", "pii": [["IN_DRIVING_LICENCE", "DL42 20053523129"]]}
+{"text": "Transfer to A/C 1511087836735202, IFSC SBIN0594278.", "pii": [["BANK_ACCOUNT", "1511087836735202"], ["IN_IFSC", "SBIN0594278"]]}
+{"text": "DOB: 28/06/1987", "pii": [["DATE_OF_BIRTH", "28/06/1987"]]}
+{"text": "Ship to Ichalkaranji, PIN 101802.", "pii": [["LOCATION", "Ichalkaranji"], ["PIN_CODE", "101802"]]}
+{"text": "The server at 84.249.180.36 belongs to Harinakshi Sanghvi.", "pii": [["IP_ADDRESS", "84.249.180.36"], ["PERSON", "Harinakshi Sanghvi"]]}
+{"text": "Office landline is +914168587831.", "pii": [["PHONE_NUMBER", "+914168587831"]]}
+{"text": "hi this is frado deol, my number is 91461-84985", "pii": [["PERSON", "frado deol"], ["IN_PHONE", "91461-84985"]]}
+{"text": "{\"customer\": \"Ojas Yohannan\", \"email\": \"amritanatarajan@example.net\"}", "pii": [["PERSON", "Ojas Yohannan"], ["EMAIL_ADDRESS", "amritanatarajan@example.net"]]}
+{"text": "login password: D(4WwL_S*k^q", "pii": [["PASSWORD", "D(4WwL_S*k^q"]]}
+{"text": "Why is AKIAOSIFIAUYSIKKBIPL returning a 401?", "pii": [["API_KEY", "AKIAOSIFIAUYSIKKBIPL"]]}
+{"text": "Thomas and Anmol will join the call from Rewa.", "pii": [["PERSON", "Thomas"], ["PERSON", "Anmol"], ["LOCATION", "Rewa"]]}
+{"text": "Order 2695662532 was shipped on 03/10/1950.", "pii": []}
+{"text": "Batch VCT0532901 passed quality checks.", "pii": []}
+{"text": "We sold 813 units in Q3.", "pii": []}
+{"text": "Please reset your password from the settings page.", "pii": []}
+{"text": "The meeting is on January 28, 1964 in the main hall.", "pii": []}
+{"text": "Please send the invoice to Falan Bains at mannanjagrati@example.com.", "pii": [["PERSON", "Falan Bains"], ["EMAIL_ADDRESS", "mannanjagrati@example.com"]]}
+{"text": "Call Upasna on 8216802842 before noon.", "pii": [["PERSON", "Upasna"], ["IN_PHONE", "8216802842"]]}
+{"text": "Harrison Thaker from Solapur raised a complaint about the delivery.", "pii": [["PERSON", "Harrison Thaker"], ["LOCATION", "Solapur"]]}
+{"text": "Refund the amount to praneeldoctor@okaxis for customer Ekaja Mody.", "pii": [["UPI_ID", "praneeldoctor@okaxis"], ["PERSON", "Ekaja Mody"]]}
+{"text": "My Aadhaar number is 262748157092, please update it.", "pii": [["IN_AADHAAR", "262748157092"]]}
+{"text": "PAN EDDPW3786D belongs to Yoshita Memon.", "pii": [["IN_PAN", "EDDPW3786D"], ["PERSON", "Yoshita Memon"]]}
+{"text": "Charge 4328059832468204 for the annual plan.", "pii": [["CREDIT_CARD", "4328059832468204"]]}
+{"text": "Customer passport no: E9903989", "pii": [["IN_PASSPORT", "E9903989"]]}
+{"text": "Voter ID VTR1417620 was verified at the camp.", "pii": [["IN_VOTER_ID", "VTR1417620"]]}
+{"text": "DL number KL-42-2020-9906551, valid till next year.", "pii": [["IN_DRIVING_LICENCE", "KL-42-2020-9906551"]]}
+{"text": "Transfer to A/C 89962369736769297, IFSC SBIN0178368.", "pii": [["BANK_ACCOUNT", "89962369736769297"], ["IN_IFSC", "SBIN0178368"]]}
+{"text": "DOB: 1994-06-24", "pii": [["DATE_OF_BIRTH", "1994-06-24"]]}
+{"text": "Ship to Nizamabad, PIN 377588.", "pii": [["LOCATION", "Nizamabad"], ["PIN_CODE", "377588"]]}
+{"text": "The server at 60.150.166.150 belongs to Zashil Sarna.", "pii": [["IP_ADDRESS", "60.150.166.150"], ["PERSON", "Zashil Sarna"]]}
+{"text": "Office landline is 7065247069.", "pii": [["PHONE_NUMBER", "7065247069"]]}
+{"text": "hi this is david pant, my number is +91-9122570673", "pii": [["PERSON", "david pant"], ["IN_PHONE", "+91-9122570673"]]}
+{"text": "{\"customer\": \"Jeremiah Devi\", \"email\": \"aradhana69@example.com\"}", "pii": [["PERSON", "Jeremiah Devi"], ["EMAIL_ADDRESS", "aradhana69@example.com"]]}
+{"text": "login password: N1BsuhZ4#9wC", "pii": [["PASSWORD", "N1BsuhZ4#9wC"]]}
+{"text": "Why is gsk_24Vs9lhJgqNhjart4UAFDZk3giLVAj2y returning a 401?", "pii": [["API_KEY", "gsk_24Vs9lhJgqNhjart4UAFDZk3giLVAj2y"]]}
+{"text": "Vritti and Osha will join the call from Dhule.", "pii": [["PERSON", "Vritti"], ["PERSON", "Osha"], ["LOCATION", "Dhule"]]}
+{"text": "Order 9384131991 was shipped on August 28, 1984.", "pii": []}
+{"text": "Batch NXR2359550 passed quality checks.", "pii": []}
+{"text": "We sold 622 units in Q3.", "pii": []}
+{"text": "Please reset your password from the settings page.", "pii": []}
+{"text": "The meeting is on 23-08-2005 in the main hall.", "pii": []}
+{"text": "Please send the invoice to Samarth Mander at bajwajacob@example.net.", "pii": [["PERSON", "Samarth Mander"], ["EMAIL_ADDRESS", "bajwajacob@example.net"]]}
+{"text": "Call Agastya on +91 82252 52678 before noon.", "pii": [["PERSON", "Agastya"], ["IN_PHONE", "+91 82252 52678"]]}
+{"text": "Laban Borde from Chapra raised a complaint about the delivery.", "pii": [["PERSON", "Laban Borde"], ["LOCATION", "Chapra"]]}
+{"text": "Refund the amount to rajeshri85@ybl for customer Aadi Dasgupta.", "pii": [["UPI_ID", "rajeshri85@ybl"], ["PERSON", "Aadi Dasgupta"]]}
+{"text": "My Aadhaar number is 9412 8289 0508, please update it.", "pii": [["IN_AADHAAR", "9412 8289 0508"]]}
+{"text": "PAN ZTZPD5535J belongs to Shivani Palla.", "pii": [["IN_PAN", "ZTZPD5535J"], ["PERSON", "Shivani Palla"]]}
+{"text": "Charge 4865 9716 6380 4985 for the annual plan.", "pii": [["CREDIT_CARD", "4865 9716 6380 4985"]]}
+{"text": "Customer passport no: A2443378", "pii": [["IN_PASSPORT", "A2443378"]]}
+{"text": "Voter ID CXJ5967771 was verified at the camp.", "pii": [["IN_VOTER_ID", "CXJ5967771"]]}
+{"text": "DL number KL-84-2014-0344857, valid till next year.", "pii": [["IN_DRIVING_LICENCE", "KL-84-2014-0344857"]]}
+{"text": "Transfer to A/C 69787863278, IFSC SBIN0184405.", "pii": [["BANK_ACCOUNT", "69787863278"], ["IN_IFSC", "SBIN0184405"]]}
+{"text": "DOB: May 15, 1959", "pii": [["DATE_OF_BIRTH", "May 15, 1959"]]}
+{"text": "Ship to Ghaziabad, PIN 700417.", "pii": [["LOCATION", "Ghaziabad"], ["PIN_CODE", "700417"]]}
+{"text": "The server at 217.197.81.62 belongs to Shivani Wali.", "pii": [["IP_ADDRESS", "217.197.81.62"], ["PERSON", "Shivani Wali"]]}
+{"text": "Office landline is +915806966599.", "pii": [["PHONE_NUMBER", "+915806966599"]]}
+{"text": "hi this is waida kota, my number is +91-7646622820", "pii": [["PERSON", "waida kota"], ["IN_PHONE", "+91-7646622820"]]}
+{"text": "{\"customer\": \"Ansh Ray\", \"email\": \"mekhalamadan@example.org\"}", "pii": [["PERSON", "Ansh Ray"], ["EMAIL_ADDRESS", "mekhalamadan@example.org"]]}
+{"text": "login password: t@IcAA7lP89V", "pii": [["PASSWORD", "t@IcAA7lP89V"]]}
+{"text": "Why is AKIARMOBHTZOJTKKMGPS returning a 401?", "pii": [["API_KEY", "AKIARMOBHTZOJTKKMGPS"]]}
+{"text": "Mugdha and Viraj will join the call from Hospet.", "pii": [["PERSON", "Mugdha"], ["PERSON", "Viraj"], ["LOCATION", "Hospet"]]}
+{"text": "Order 9780863477 was shipped on 20-07-1971.", "pii": []}
+{"text": "Batch BTW5591941 passed quality checks.", "pii": []}
+{"text": "We sold 799 units in Q3.", "pii": []}
+{"text": "Please reset your password from the settings page.", "pii": []}
+{"text": "The meeting is on 29-11-1996 in the main hall.", "pii": []}
+{"text": "Please send the invoice to Vincent Keer at turvi89@example.com.", "pii": [["PERSON", "Vincent Keer"], ["EMAIL_ADDRESS", "turvi89@example.com"]]}
+{"text": "Call Siddharth on 9372773134 before noon.", "pii": [["PERSON", "Siddharth"], ["IN_PHONE", "9372773134"]]}
+{"text": "Aarna Narayanan from Guntakal raised a complaint about the delivery.", "pii": [["PERSON", "Aarna Narayanan"], ["LOCATION", "Guntakal"]]}
+{"text": "Refund the amount to kalafarhan@oksbi for customer Alexander Ahluwalia.", "pii": [["UPI_ID", "kalafarhan@oksbi"], ["PERSON", "Alexander Ahluwalia"]]}
+{"text": "My Aadhaar number is 2058 2078 9631, please update it.", "pii": [["IN_AADHAAR", "2058 2078 9631"]]}
+{"text": "PAN DSCPK4312V belongs to Ekaja Rajagopal.", "pii": [["IN_PAN", "DSCPK4312V"], ["PERSON", "Ekaja Rajagopal"]]}
+{"text": "Charge 4362 2006 2809 6422 for the annual plan.", "pii": [["CREDIT_CARD", "4362 2006 2809 6422"]]}
+{"text": "Customer passport no: U7273592", "pii": [["IN_PASSPORT", "U7273592"]]}
+{"text": "Voter ID BUW3359387 was verified at the camp.", "pii": [["IN_VOTER_ID", "BUW3359387"]]}
+{"text": "DL number DL-90-2020-9008021, valid till next year.", "pii": [["IN_DRIVING_LICENCE", "DL-90-2020-9008021"]]}
+{"text": "Transfer to A/C 69621953655034, IFSC ICIC0759026.", "pii": [["BANK_ACCOUNT", "69621953655034"], ["IN_IFSC", "ICIC0759026"]]}
+{"text": "DOB: 31/03/1951", "pii": [["DATE_OF_BIRTH", "31/03/1951"]]}
+{"text": "Ship to Avadi, PIN 510024.", "pii": [["LOCATION", "Avadi"], ["PIN_CODE", "510024"]]}
+{"text": "The server at 67.228.254.193 belongs to Brijesh Mahal.", "pii": [["IP_ADDRESS", "67.228.254.193"], ["PERSON", "Brijesh Mahal"]]}
+{"text": "Office landline is +916130724376.", "pii": [["PHONE_NUMBER", "+916130724376"]]}
+{"text": "hi this is amrita lad, my number is +91 60084 39054", "pii": [["PERSON", "amrita lad"], ["IN_PHONE", "+91 60084 39054"]]}
+{"text": "{\"customer\": \"Yatan Bhasin\", \"email\": \"inayasangha@example.net\"}", "pii": [["PERSON", "Yatan Bhasin"], ["EMAIL_ADDRESS", "inayasangha@example.net"]]}
+{"text": "login password: +8UqeRu^7Xx^", "pii": [["PASSWORD", "+8UqeRu^7Xx^"]]}
+{"text": "Why is AKIAXTXLTHGIHWBGTGJD returning a 401?", "pii": [["API_KEY", "AKIAXTXLTHGIHWBGTGJD"]]}
+{"text": "Chanakya and Vyanjana will join the call from Sambalpur.", "pii": [["PERSON", "Chanakya"], ["PERSON", "Vyanjana"], ["LOCATION", "Sambalpur"]]}
+{"text": "Order 0852953841 was shipped on 01 September 1993.", "pii": []}
+{"text": "Batch NOV5509971 passed quality checks.", "pii": []}
+{"text": "We sold 400 units in Q3.", "pii": []}
+{"text": "Please reset your password from the settings page.", "pii": []}
+{"text": "The meeting is on November 17, 1984 in the main hall.", "pii": []}
+{"text": "Please send the invoice to Janaki Prabhakar at dmohanty@example.net.", "pii": [["PERSON", "Janaki Prabhakar"], ["EMAIL_ADDRESS", "dmohanty@example.net"]]}
+{"text": "Call Harini on 80350-86323 before noon.", "pii": [["PERSON", "Harini"], ["IN_PHONE", "80350-86323"]]}
+{"text": "Ayush Divan from Korba raised a complaint about the delivery.", "pii": [["PERSON", "Ayush Divan"], ["LOCATION", "Korba"]]}
+{"text": "Refund the amount to isaiahgoyal@okaxis for customer Chandresh Chaudhary.", "pii": [["UPI_ID", "isaiahgoyal@okaxis"], ["PERSON", "Chandresh Chaudhary"]]}
+{"text": "My Aadhaar number is 319330949993, please update it.", "pii": [["IN_AADHAAR", "319330949993"]]}
+{"text": "PAN XUDPN5977T belongs to Hredhaan Jayaraman.", "pii": [["IN_PAN", "XUDPN5977T"], ["PERSON", "Hredhaan Jayaraman"]]}
+{"text": "Charge 4198 1132 8609 5745 for the annual plan.", "pii": [["CREDIT_CARD", "4198 1132 8609 5745"]]}
+{"text": "Customer passport no: Y6449513", "pii": [["IN_PASSPORT", "Y6449513"]]}
+{"text": "Voter ID GFD1796896 was verified at the camp.", "pii": [["IN_VOTER_ID", "GFD1796896"]]}
+{"text": "DL number KA26 20018846597, valid till next year.", "pii": [["IN_DRIVING_LICENCE", "KA26 20018846597"]]}
+{"text": "Transfer to A/C 8922775448, IFSC UTIB0084126.", "pii": [["BANK_ACCOUNT", "8922775448"], ["IN_IFSC", "UTIB0084126"]]}
+{"text": "DOB: 19/10/1960", "pii": [["DATE_OF_BIRTH", "19/10/1960"]]}
+{"text": "Ship to Khora , PIN 913879.", "pii": [["LOCATION", "Khora "], ["PIN_CODE", "913879"]]}
+{"text": "The server at 163.195.119.218 belongs to Sneha Peri.", "pii": [["IP_ADDRESS", "163.195.119.218"], ["PERSON", "Sneha Peri"]]}
+{"text": "Office landline is 3714630868.", "pii": [["PHONE_NUMBER", "3714630868"]]}
+{"text": "hi this is faraj raval, my number is +91-8558946335", "pii": [["PERSON", "faraj raval"], ["IN_PHONE", "+91-8558946335"]]}
+{"text": "{\"customer\": \"Banjeet Pandey\", \"email\": \"mahuja@example.com\"}", "pii": [["PERSON", "Banjeet Pandey"], ["EMAIL_ADDRESS", "mahuja@example.com"]]}
+{"text": "login password: mPzBRZzdI+0Q", "pii": [["PASSWORD", "mPzBRZzdI+0Q"]]}
+{"text": "Why is AKIADUZGALRAKHRTACCA returning a 401?", "pii": [["API_KEY", "AKIADUZGALRAKHRTACCA"]]}
+{"text": "Madhavi and Jatin will join the call from Durg.", "pii": [["PERSON", "Madhavi"], ["PERSON", "Jatin"], ["LOCATION", "Durg"]]}
+{"text": "Order 4737434134 was shipped on 29/03/1992.", "pii": []}
+{"text": "Batch ZVJ1794924 passed quality checks.", "pii": []}
+{"text": "We sold 282 units in Q3.", "pii": []}
+{"text": "Please reset your password from the settings page.", "pii": []}
+{"text": "The meeting is on 22 May 1980 in the main hall.", "pii": []}
+{"text": "Please send the invoice to Maya D\u2019Alia at jcherian@example.com.", "pii": [["PERSON", "Maya D\u2019Alia"], ["EMAIL_ADDRESS", "jcherian@example.com"]]}
+{"text": "Call Saksham on +91 87474 97019 before noon.", "pii": [["PERSON", "Saksham"], ["IN_PHONE", "+91 87474 97019"]]}
+{"text": "Aarini Saha from Kumbakonam raised a complaint about the delivery.", "pii": [["PERSON", "Aarini Saha"], ["LOCATION", "Kumbakonam"]]}
+{"text": "Refund the amount to geetikasunder@okaxis for customer Abhiram Palan.", "pii": [["UPI_ID", "geetikasunder@okaxis"], ["PERSON", "Abhiram Palan"]]}
+{"text": "My Aadhaar number is 3249-3780-6958, please update it.", "pii": [["IN_AADHAAR", "3249-3780-6958"]]}
+{"text": "PAN KBQPY7687Z belongs to Daksh Zachariah.", "pii": [["IN_PAN", "KBQPY7687Z"], ["PERSON", "Daksh Zachariah"]]}
+{"text": "Charge 4413 8443 6224 3689 for the annual plan.", "pii": [["CREDIT_CARD", "4413 8443 6224 3689"]]}
+{"text": "Customer passport no: F8870267", "pii": [["IN_PASSPORT", "F8870267"]]}
+{"text": "Voter ID DLR4364167 was verified at the camp.", "pii": [["IN_VOTER_ID", "DLR4364167"]]}
+{"text": "DL number DL-27-2011-6817738, valid till next year.", "pii": [["IN_DRIVING_LICENCE", "DL-27-2011-6817738"]]}
+{"text": "Transfer to A/C 411559561426, IFSC SBIN0445217.", "pii": [["BANK_ACCOUNT", "411559561426"], ["IN_IFSC", "SBIN0445217"]]}
+{"text": "DOB: September 15, 1988", "pii": [["DATE_OF_BIRTH", "September 15, 1988"]]}
+{"text": "Ship to Katihar, PIN 850366.", "pii": [["LOCATION", "Katihar"], ["PIN_CODE", "850366"]]}
+{"text": "The server at 207.79.119.97 belongs to Ati Srinivasan.", "pii": [["IP_ADDRESS", "207.79.119.97"], ["PERSON", "Ati Srinivasan"]]}
+{"text": "Office landline is 4473759735.", "pii": [["PHONE_NUMBER", "4473759735"]]}
+{"text": "hi this is pratyush seshadri, my number is +91-7343112057", "pii": [["PERSON", "pratyush seshadri"], ["IN_PHONE", "+91-7343112057"]]}
+{"text": "{\"customer\": \"Dalbir Thaman\", \"email\": \"krishna35@example.net\"}", "pii": [["PERSON", "Dalbir Thaman"], ["EMAIL_ADDRESS", "krishna35@example.net"]]}
+{"text": "login password: *_6&7Kdc42Ur", "pii": [["PASSWORD", "*_6&7Kdc42Ur"]]}
+{"text": "Why is rzp_live_kHcrGiN797t8ZL5zIHWM4vNigcK0tx6v returning a 401?", "pii": [["API_KEY", "rzp_live_kHcrGiN797t8ZL5zIHWM4vNigcK0tx6v"]]}
+{"text": "Nathaniel and Nachiket will join the call from Gandhidham.", "pii": [["PERSON", "Nathaniel"], ["PERSON", "Nachiket"], ["LOCATION", "Gandhidham"]]}
+{"text": "Order 3131815309 was shipped on 1973-06-09.", "pii": []}
+{"text": "Batch IHB0139626 passed quality checks.", "pii": []}
+{"text": "We sold 282 units in Q3.", "pii": []}
+{"text": "Please reset your password from the settings page.", "pii": []}
+{"text": "The meeting is on 08/11/1953 in the main hall.", "pii": []}
+{"text": "Please send the invoice to Anamika Merchant at yogiaditya@example.net.", "pii": [["PERSON", "Anamika Merchant"], ["EMAIL_ADDRESS", "yogiaditya@example.net"]]}
+{"text": "Call Kevin on +91-8919771920 before noon.", "pii": [["PERSON", "Kevin"], ["IN_PHONE", "+91-8919771920"]]}
+{"text": "Harrison Sharaf from Bhiwani raised a complaint about the delivery.", "pii": [["PERSON", "Harrison Sharaf"], ["LOCATION", "Bhiwani"]]}
+{"text": "Refund the amount to xmajumdar@paytm for customer Nidra Shere.", "pii": [["UPI_ID", "xmajumdar@paytm"], ["PERSON", "Nidra Shere"]]}
+{"text": "My Aadhaar number is 8538-6505-1242, please update it.", "pii": [["IN_AADHAAR", "8538-6505-1242"]]}
+{"text": "PAN AOYPG1770Z belongs to Hardik Sinha.", "pii": [["IN_PAN", "AOYPG1770Z"], ["PERSON", "Hardik Sinha"]]}
+{"text": "Charge 4001 9288 5849 5735 for the annual plan.", "pii": [["CREDIT_CARD", "4001 9288 5849 5735"]]}
+{"text": "Customer passport no: U9876033", "pii": [["IN_PASSPORT", "U9876033"]]}
+{"text": "Voter ID EXD8288381 was verified at the camp.", "pii": [["IN_VOTER_ID", "EXD8288381"]]}
+{"text": "DL number WB4120216267609, valid till next year.", "pii": [["IN_DRIVING_LICENCE", "WB4120216267609"]]}
+{"text": "Transfer to A/C 885575759, IFSC SBIN0882825.", "pii": [["BANK_ACCOUNT", "885575759"], ["IN_IFSC", "SBIN0882825"]]}
+{"text": "DOB: 2000-11-02", "pii": [["DATE_OF_BIRTH", "2000-11-02"]]}
+{"text": "Ship to Aligarh, PIN 310747.", "pii": [["LOCATION", "Aligarh"], ["PIN_CODE", "310747"]]}
+{"text": "The server at 199.81.59.199 belongs to Banjeet Murthy.", "pii": [["IP_ADDRESS", "199.81.59.199"], ["PERSON", "Banjeet Murthy"]]}
+{"text": "Office landline is 05409666545.", "pii": [["PHONE_NUMBER", "05409666545"]]}
+{"text": "hi this is wazir venkataraman, my number is +91 86970 43284", "pii": [["PERSON", "wazir venkataraman"], ["IN_PHONE", "+91 86970 43284"]]}
+{"text": "{\"customer\": \"Daksh Om\", \"email\": \"vargheseorinder@example.net\"}", "pii": [["PERSON", "Daksh Om"], ["EMAIL_ADDRESS", "vargheseorinder@example.net"]]}
+{"text": "login password: ey@sGK0y*C_7", "pii": [["PASSWORD", "ey@sGK0y*C_7"]]}
+{"text": "Why is gsk_fwQO7UG70P7UwSNVou9W6ySohnEhzXFQ returning a 401?", "pii": [["API_KEY", "gsk_fwQO7UG70P7UwSNVou9W6ySohnEhzXFQ"]]}
+{"text": "Lopa and Sai will join the call from Alwar.", "pii": [["PERSON", "Lopa"], ["PERSON", "Sai"], ["LOCATION", "Alwar"]]}
+{"text": "Order 0396744477 was shipped on 01-05-1970.", "pii": []}
+{"text": "Batch LKD4210476 passed quality checks.", "pii": []}
+{"text": "We sold 189 units in Q3.", "pii": []}
+{"text": "Please reset your password from the settings page.", "pii": []}
+{"text": "The meeting is on 22 February 1956 in the main hall.", "pii": []}

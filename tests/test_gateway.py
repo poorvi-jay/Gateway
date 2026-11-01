@@ -22,6 +22,7 @@ from app.policy import Policy  # noqa: E402
 from app.recognizers import verhoeff_valid  # noqa: E402
 from app.sanitizer import sanitize_request  # noqa: E402
 from app.tokenizer import Vault, rehydrate, repair  # noqa: E402
+from eval.synthetic import DEV_TEMPLATES, TEST_TEMPLATES, generate  # noqa: E402
 
 VALID_AADHAAR = "2341 2341 2346"  # passes the Verhoeff checksum
 URL = "/v1/chat/completions"
@@ -144,6 +145,10 @@ def test_ids_and_keys_are_blocked(client, fake_llm, text, entity):
     ("my password is hunter2", "hunter2", "<PASSWORD_1>"),
     ('{"password": "S3cret!x"}', "S3cret!x", "<PASSWORD_1>"),
     ("UPI PIN: 123456", "123456", "<PASSWORD_1>"),
+    ("Invoice for Hamsini Goda today", "Hamsini Goda", "<PERSON_1>"),
+    ("Invoice for Maya D'Souza today", "Maya D'Souza", "<PERSON_1>"),
+    ("Moved to Warangal", "Warangal", "<LOCATION_1>"),
+    ("Office landline is 04696291370", "04696291370", "<PHONE_NUMBER_1>"),
 ])
 def test_new_types_are_tokenized(client, fake_llm, text, secret, placeholder):
     chat(client, text)
@@ -157,6 +162,8 @@ def test_new_types_are_tokenized(client, fake_llm, text, secret, placeholder):
     "Ticket K1234567 and batch ABC1234567",  # ID shapes alone must not block
     "Password is required for this form",
     "Send the token issue logs today",       # "is" must not match inside "issue"
+    "Ask Customer Support about it",         # not every capitalized pair is a name
+    "Pay Rs 500 today",
     "The task-management-system-for-teams is live",
 ])
 def test_lookalikes_pass_untouched(client, fake_llm, text):
@@ -466,6 +473,14 @@ def test_name_parts_skip_lowercase_words_and_titles():
 
 
 # ---------------------------------------------------------------- unit
+def test_synthetic_data_is_reproducible_and_labelled():
+    rows = generate(DEV_TEMPLATES + TEST_TEMPLATES, seed=1)
+    assert rows == generate(DEV_TEMPLATES + TEST_TEMPLATES, seed=1)
+    assert all(value in row["text"] for row in rows for _, value in row["pii"])
+    aadhaar = [v for row in rows for e, v in row["pii"] if e == "IN_AADHAAR"]
+    assert aadhaar and all(verhoeff_valid(v.replace(" ", "").replace("-", "")) for v in aadhaar)
+
+
 def test_unknown_placeholder_left_alone():
     v = Vault()
     v.placeholder_for("PERSON", "Asha")

@@ -1,0 +1,200 @@
+{"text": "Kindly forward the statement to chandfrado@example.com and copy Darika Krishnamurthy.", "pii": [["EMAIL_ADDRESS", "chandfrado@example.com"], ["PERSON", "Darika Krishnamurthy"]]}
+{"text": "Ring Balendra Dutt at 06031882206 regarding the policy renewal.", "pii": [["PERSON", "Balendra Dutt"], ["IN_PHONE", "06031882206"]]}
+{"text": "Our branch manager Raagini moved to Danapur last month.", "pii": [["PERSON", "Raagini"], ["LOCATION", "Danapur"]]}
+{"text": "Collect payment via sai84@paytm.", "pii": [["UPI_ID", "sai84@paytm"]]}
+{"text": "Aadhaar: 7542-0043-3850", "pii": [["IN_AADHAAR", "7542-0043-3850"]]}
+{"text": "Please verify income tax PAN EFEPE5355Z.", "pii": [["IN_PAN", "EFEPE5355Z"]]}
+{"text": "Card number 4057 5668 2823 3027 was declined.", "pii": [["CREDIT_CARD", "4057 5668 2823 3027"]]}
+{"text": "Renew passport P9977398 before travelling.", "pii": [["IN_PASSPORT", "P9977398"]]}
+{"text": "Electoral roll shows EPIC ETS4549583.", "pii": [["IN_VOTER_ID", "ETS4549583"]]}
+{"text": "Licence no KL93 20235564743 was suspended.", "pii": [["IN_DRIVING_LICENCE", "KL93 20235564743"]]}
+{"text": "Beneficiary account 873189150569712890, branch code HDFC0032010.", "pii": [["BANK_ACCOUNT", "873189150569712890"], ["IN_IFSC", "HDFC0032010"]]}
+{"text": "He was born on 17/12/1967 in Bhavnagar.", "pii": [["DATE_OF_BIRTH", "17/12/1967"], ["LOCATION", "Bhavnagar"]]}
+{"text": "Pincode 131975 is not serviceable.", "pii": [["PIN_CODE", "131975"]]}
+{"text": "Blocked login attempts from 205.116.106.92.", "pii": [["IP_ADDRESS", "205.116.106.92"]]}
+{"text": "Reach the clinic on 06859557267.", "pii": [["PHONE_NUMBER", "06859557267"]]}
+{"text": "thanks, regards vrishti mallick", "pii": [["PERSON", "vrishti mallick"]]}
+{"text": "to: Xiti Varma\nphone: 63091-03671\nemail: suhani75@example.net", "pii": [["PERSON", "Xiti Varma"], ["IN_PHONE", "63091-03671"], ["EMAIL_ADDRESS", "suhani75@example.net"]]}
+{"text": "my otp is 435602", "pii": [["PASSWORD", "435602"]]}
+{"text": "token = AKIAKQDYCRVAUYNUMIWI", "pii": [["API_KEY", "AKIAKQDYCRVAUYNUMIWI"]]}
+{"text": "Sara told Joshua that the report was ready.", "pii": [["PERSON", "Sara"], ["PERSON", "Joshua"]]}
+{"text": "Invoice 6405100106 is due on February 07, 1981.", "pii": []}
+{"text": "Part number XSA2700276 is out of stock.", "pii": []}
+{"text": "Revenue grew by 370 percent this year.", "pii": []}
+{"text": "The OTP screen takes too long to load.", "pii": []}
+{"text": "Standup moves to 1985-08-22.", "pii": []}
+{"text": "Kindly forward the statement to gsur@example.com and copy Harita Lad.", "pii": [["EMAIL_ADDRESS", "gsur@example.com"], ["PERSON", "Harita Lad"]]}
+{"text": "Ring Oni Badami at +91 92713 15010 regarding the policy renewal.", "pii": [["PERSON", "Oni Badami"], ["IN_PHONE", "+91 92713 15010"]]}
+{"text": "Our branch manager Logan moved to Nizamabad last month.", "pii": [["PERSON", "Logan"], ["LOCATION", "Nizamabad"]]}
+{"text": "Collect payment via deepneel@okaxis.", "pii": [["UPI_ID", "deepneel@okaxis"]]}
+{"text": "Aadhaar: 506453672840", "pii": [["IN_AADHAAR", "506453672840"]]}
+{"text": "Please verify income tax PAN PBKPN1083N.", "pii": [["IN_PAN", "PBKPN1083N"]]}
+{"text": "Card number 4173803371419391 was declined.", "pii": [["CREDIT_CARD", "4173803371419391"]]}
+{"text": "Renew passport W6293062 before travelling.", "pii": [["IN_PASSPORT", "W6293062"]]}
+{"text": "Electoral roll shows EPIC CFU8806486.", "pii": [["IN_VOTER_ID", "CFU8806486"]]}
+{"text": "Licence no MH-03-2004-3821633 was suspended.", "pii": [["IN_DRIVING_LICENCE", "MH-03-2004-3821633"]]}
+{"text": "Beneficiary account 72549898224, branch code SBIN0566075.", "pii": [["BANK_ACCOUNT", "72549898224"], ["IN_IFSC", "SBIN0566075"]]}
+{"text": "He was born on 13/09/1999 in Bardhaman.", "pii": [["DATE_OF_BIRTH", "13/09/1999"], ["LOCATION", "Bardhaman"]]}
+{"text": "Pincode 615887 is not serviceable.", "pii": [["PIN_CODE", "615887"]]}
+{"text": "Blocked login attempts from 208.39.134.78.", "pii": [["IP_ADDRESS", "208.39.134.78"]]}
+{"text": "Reach the clinic on +910662181311.", "pii": [["PHONE_NUMBER", "+910662181311"]]}
+{"text": "thanks, regards qabil kata", "pii": [["PERSON", "qabil kata"]]}
+{"text": "to: Teerth Bakshi\nphone: 06122664515\nemail: tsetty@example.net", "pii": [["PERSON", "Teerth Bakshi"], ["IN_PHONE", "06122664515"], ["EMAIL_ADDRESS", "tsetty@example.net"]]}
+{"text": "my otp is 057284", "pii": [["PASSWORD", "057284"]]}
+{"text": "token = ghp_DU7N4XctF7cKOD6cT2hIx8NUrijPUgO9aYhh", "pii": [["API_KEY", "ghp_DU7N4XctF7cKOD6cT2hIx8NUrijPUgO9aYhh"]]}
+{"text": "Ishani told Patrick that the report was ready.", "pii": [["PERSON", "Ishani"], ["PERSON", "Patrick"]]}
+{"text": "Invoice 3579087518 is due on 09 December 1982.", "pii": []}
+{"text": "Part number ZQA4786809 is out of stock.", "pii": []}
+{"text": "Revenue grew by 748 percent this year.", "pii": []}
+{"text": "The OTP screen takes too long to load.", "pii": []}
+{"text": "Standup moves to October 21, 1955.", "pii": []}
+{"text": "Kindly forward the statement to zbhavsar@example.org and copy Kabir Minhas.", "pii": [["EMAIL_ADDRESS", "zbhavsar@example.org"], ["PERSON", "Kabir Minhas"]]}
+{"text": "Ring Vincent Narayan at +91-9981871751 regarding the policy renewal.", "pii": [["PERSON", "Vincent Narayan"], ["IN_PHONE", "+91-9981871751"]]}
+{"text": "Our branch manager Reva moved to Loni last month.", "pii": [["PERSON", "Reva"], ["LOCATION", "Loni"]]}
+{"text": "Collect payment via isaac28@oksbi.", "pii": [["UPI_ID", "isaac28@oksbi"]]}
+{"text": "Aadhaar: 2642-5429-0049", "pii": [["IN_AADHAAR", "2642-5429-0049"]]}
+{"text": "Please verify income tax PAN RTMPR3250C.", "pii": [["IN_PAN", "RTMPR3250C"]]}
+{"text": "Card number 4158 3842 2736 5921 was declined.", "pii": [["CREDIT_CARD", "4158 3842 2736 5921"]]}
+{"text": "Renew passport F7268708 before travelling.", "pii": [["IN_PASSPORT", "F7268708"]]}
+{"text": "Electoral roll shows EPIC JMH0593534.", "pii": [["IN_VOTER_ID", "JMH0593534"]]}
+{"text": "Licence no UP-64-2010-6380635 was suspended.", "pii": [["IN_DRIVING_LICENCE", "UP-64-2010-6380635"]]}
+{"text": "Beneficiary account 918333141, branch code UTIB0841792.", "pii": [["BANK_ACCOUNT", "918333141"], ["IN_IFSC", "UTIB0841792"]]}
+{"text": "He was born on 1977-08-03 in Ludhiana.", "pii": [["DATE_OF_BIRTH", "1977-08-03"], ["LOCATION", "Ludhiana"]]}
+{"text": "Pincode 618478 is not serviceable.", "pii": [["PIN_CODE", "618478"]]}
+{"text": "Blocked login attempts from 213.198.9.148.", "pii": [["IP_ADDRESS", "213.198.9.148"]]}
+{"text": "Reach the clinic on 08074646758.", "pii": [["PHONE_NUMBER", "08074646758"]]}
+{"text": "thanks, regards finn kar", "pii": [["PERSON", "finn kar"]]}
+{"text": "to: Neha Raja\nphone: +91-7372864838\nemail: munshiucchal@example.net", "pii": [["PERSON", "Neha Raja"], ["IN_PHONE", "+91-7372864838"], ["EMAIL_ADDRESS", "munshiucchal@example.net"]]}
+{"text": "my otp is 569778", "pii": [["PASSWORD", "569778"]]}
+{"text": "token = sk-proj-ofwjbus6olCkaBn8b7FZSCx40UpekUfK", "pii": [["API_KEY", "sk-proj-ofwjbus6olCkaBn8b7FZSCx40UpekUfK"]]}
+{"text": "Gaurav told Darika that the report was ready.", "pii": [["PERSON", "Gaurav"], ["PERSON", "Darika"]]}
+{"text": "Invoice 1108760385 is due on August 15, 1948.", "pii": []}
+{"text": "Part number HQD3901224 is out of stock.", "pii": []}
+{"text": "Revenue grew by 258 percent this year.", "pii": []}
+{"text": "The OTP screen takes too long to load.", "pii": []}
+{"text": "Standup moves to 07/09/1961.", "pii": []}
+{"text": "Kindly forward the statement to hkata@example.com and copy Isaac Choudhury.", "pii": [["EMAIL_ADDRESS", "hkata@example.com"], ["PERSON", "Isaac Choudhury"]]}
+{"text": "Ring Janya Kala at 8177096681 regarding the policy renewal.", "pii": [["PERSON", "Janya Kala"], ["IN_PHONE", "8177096681"]]}
+{"text": "Our branch manager Eiravati moved to Solapur last month.", "pii": [["PERSON", "Eiravati"], ["LOCATION", "Solapur"]]}
+{"text": "Collect payment via tanvi52@paytm.", "pii": [["UPI_ID", "tanvi52@paytm"]]}
+{"text": "Aadhaar: 9715 8376 3930", "pii": [["IN_AADHAAR", "9715 8376 3930"]]}
+{"text": "Please verify income tax PAN MWOPQ0564K.", "pii": [["IN_PAN", "MWOPQ0564K"]]}
+{"text": "Card number 4747 2734 5213 7352 was declined.", "pii": [["CREDIT_CARD", "4747 2734 5213 7352"]]}
+{"text": "Renew passport F7348452 before travelling.", "pii": [["IN_PASSPORT", "F7348452"]]}
+{"text": "Electoral roll shows EPIC YRX0370131.", "pii": [["IN_VOTER_ID", "YRX0370131"]]}
+{"text": "Licence no DL6020089608245 was suspended.", "pii": [["IN_DRIVING_LICENCE", "DL6020089608245"]]}
+{"text": "Beneficiary account 663639576, branch code HDFC0819123.", "pii": [["BANK_ACCOUNT", "663639576"], ["IN_IFSC", "HDFC0819123"]]}
+{"text": "He was born on 12-06-1958 in Kolhapur.", "pii": [["DATE_OF_BIRTH", "12-06-1958"], ["LOCATION", "Kolhapur"]]}
+{"text": "Pincode 713200 is not serviceable.", "pii": [["PIN_CODE", "713200"]]}
+{"text": "Blocked login attempts from 88.49.65.152.", "pii": [["IP_ADDRESS", "88.49.65.152"]]}
+{"text": "Reach the clinic on 05498956489.", "pii": [["PHONE_NUMBER", "05498956489"]]}
+{"text": "thanks, regards jhalak morar", "pii": [["PERSON", "jhalak morar"]]}
+{"text": "to: Veda Ghosh\nphone: +91 82792 76605\nemail: irya77@example.org", "pii": [["PERSON", "Veda Ghosh"], ["IN_PHONE", "+91 82792 76605"], ["EMAIL_ADDRESS", "irya77@example.org"]]}
+{"text": "my otp is 230102", "pii": [["PASSWORD", "230102"]]}
+{"text": "token = AKIASOTWFDIRZDSXTCRW", "pii": [["API_KEY", "AKIASOTWFDIRZDSXTCRW"]]}
+{"text": "Chandran told Vaishnavi that the report was ready.", "pii": [["PERSON", "Chandran"], ["PERSON", "Vaishnavi"]]}
+{"text": "Invoice 9138850860 is due on 1962-04-09.", "pii": []}
+{"text": "Part number RDS2923535 is out of stock.", "pii": []}
+{"text": "Revenue grew by 947 percent this year.", "pii": []}
+{"text": "The OTP screen takes too long to load.", "pii": []}
+{"text": "Standup moves to 26-03-1950.", "pii": []}
+{"text": "Kindly forward the statement to jdewan@example.org and copy Yadavi Bhasin.", "pii": [["EMAIL_ADDRESS", "jdewan@example.org"], ["PERSON", "Yadavi Bhasin"]]}
+{"text": "Ring Ryan Ahuja at 09767443421 regarding the policy renewal.", "pii": [["PERSON", "Ryan Ahuja"], ["IN_PHONE", "09767443421"]]}
+{"text": "Our branch manager Geetika moved to Kolhapur last month.", "pii": [["PERSON", "Geetika"], ["LOCATION", "Kolhapur"]]}
+{"text": "Collect payment via vyanjana02@paytm.", "pii": [["UPI_ID", "vyanjana02@paytm"]]}
+{"text": "Aadhaar: 578303647655", "pii": [["IN_AADHAAR", "578303647655"]]}
+{"text": "Please verify income tax PAN RIFPV2081I.", "pii": [["IN_PAN", "RIFPV2081I"]]}
+{"text": "Card number 4317 3093 6596 8820 was declined.", "pii": [["CREDIT_CARD", "4317 3093 6596 8820"]]}
+{"text": "Renew passport U5768041 before travelling.", "pii": [["IN_PASSPORT", "U5768041"]]}
+{"text": "Electoral roll shows EPIC HOF1776420.", "pii": [["IN_VOTER_ID", "HOF1776420"]]}
+{"text": "Licence no KL-72-2020-6346522 was suspended.", "pii": [["IN_DRIVING_LICENCE", "KL-72-2020-6346522"]]}
+{"text": "Beneficiary account 215865034223, branch code SBIN0575772.", "pii": [["BANK_ACCOUNT", "215865034223"], ["IN_IFSC", "SBIN0575772"]]}
+{"text": "He was born on 09/08/1980 in Saharanpur.", "pii": [["DATE_OF_BIRTH", "09/08/1980"], ["LOCATION", "Saharanpur"]]}
+{"text": "Pincode 141135 is not serviceable.", "pii": [["PIN_CODE", "141135"]]}
+{"text": "Blocked login attempts from 199.88.209.36.", "pii": [["IP_ADDRESS", "199.88.209.36"]]}
+{"text": "Reach the clinic on 03456262654.", "pii": [["PHONE_NUMBER", "03456262654"]]}
+{"text": "thanks, regards harish solanki", "pii": [["PERSON", "harish solanki"]]}
+{"text": "to: Bhavani Wable\nphone: 76915-06413\nemail: omammen@example.com", "pii": [["PERSON", "Bhavani Wable"], ["IN_PHONE", "76915-06413"], ["EMAIL_ADDRESS", "omammen@example.com"]]}
+{"text": "my otp is 493396", "pii": [["PASSWORD", "493396"]]}
+{"text": "token = sk-proj-e1WCrZdckhT2lppb2C6dXBxytS2CphHt", "pii": [["API_KEY", "sk-proj-e1WCrZdckhT2lppb2C6dXBxytS2CphHt"]]}
+{"text": "Ayush told Rudra that the report was ready.", "pii": [["PERSON", "Ayush"], ["PERSON", "Rudra"]]}
+{"text": "Invoice 6574216077 is due on 1967-02-20.", "pii": []}
+{"text": "Part number RHX0278491 is out of stock.", "pii": []}
+{"text": "Revenue grew by 613 percent this year.", "pii": []}
+{"text": "The OTP screen takes too long to load.", "pii": []}
+{"text": "Standup moves to 26/10/1949.", "pii": []}
+{"text": "Kindly forward the statement to aahana57@example.org and copy Upma Badami.", "pii": [["EMAIL_ADDRESS", "aahana57@example.org"], ["PERSON", "Upma Badami"]]}
+{"text": "Ring Kevin Kala at +91-7210452605 regarding the policy renewal.", "pii": [["PERSON", "Kevin Kala"], ["IN_PHONE", "+91-7210452605"]]}
+{"text": "Our branch manager Matthew moved to Medininagar last month.", "pii": [["PERSON", "Matthew"], ["LOCATION", "Medininagar"]]}
+{"text": "Collect payment via obhattacharyya@paytm.", "pii": [["UPI_ID", "obhattacharyya@paytm"]]}
+{"text": "Aadhaar: 8914-4395-5445", "pii": [["IN_AADHAAR", "8914-4395-5445"]]}
+{"text": "Please verify income tax PAN LMZPW1211K.", "pii": [["IN_PAN", "LMZPW1211K"]]}
+{"text": "Card number 4417 7329 4339 5993 was declined.", "pii": [["CREDIT_CARD", "4417 7329 4339 5993"]]}
+{"text": "Renew passport R8442271 before travelling.", "pii": [["IN_PASSPORT", "R8442271"]]}
+{"text": "Electoral roll shows EPIC VQA3895562.", "pii": [["IN_VOTER_ID", "VQA3895562"]]}
+{"text": "Licence no KL56 20064507849 was suspended.", "pii": [["IN_DRIVING_LICENCE", "KL56 20064507849"]]}
+{"text": "Beneficiary account 95128147712392, branch code SBIN0664041.", "pii": [["BANK_ACCOUNT", "95128147712392"], ["IN_IFSC", "SBIN0664041"]]}
+{"text": "He was born on 1993-08-14 in Loni.", "pii": [["DATE_OF_BIRTH", "1993-08-14"], ["LOCATION", "Loni"]]}
+{"text": "Pincode 667183 is not serviceable.", "pii": [["PIN_CODE", "667183"]]}
+{"text": "Blocked login attempts from 141.162.193.63.", "pii": [["IP_ADDRESS", "141.162.193.63"]]}
+{"text": "Reach the clinic on 0432966176.", "pii": [["PHONE_NUMBER", "0432966176"]]}
+{"text": "thanks, regards vaishnavi rai", "pii": [["PERSON", "vaishnavi rai"]]}
+{"text": "to: Tanveer Khosla\nphone: 6546286331\nemail: christopherwalia@example.net", "pii": [["PERSON", "Tanveer Khosla"], ["IN_PHONE", "6546286331"], ["EMAIL_ADDRESS", "christopherwalia@example.net"]]}
+{"text": "my otp is 046604", "pii": [["PASSWORD", "046604"]]}
+{"text": "token = gsk_f3hOV6rWmahjD1T88JXce1TY5fR8JeTw", "pii": [["API_KEY", "gsk_f3hOV6rWmahjD1T88JXce1TY5fR8JeTw"]]}
+{"text": "Xavier told Viraj that the report was ready.", "pii": [["PERSON", "Xavier"], ["PERSON", "Viraj"]]}
+{"text": "Invoice 5662432280 is due on 10 April 1983.", "pii": []}
+{"text": "Part number TQR7614079 is out of stock.", "pii": []}
+{"text": "Revenue grew by 722 percent this year.", "pii": []}
+{"text": "The OTP screen takes too long to load.", "pii": []}
+{"text": "Standup moves to 04-10-1958.", "pii": []}
+{"text": "Kindly forward the statement to ahujanidra@example.org and copy Timothy Ben.", "pii": [["EMAIL_ADDRESS", "ahujanidra@example.org"], ["PERSON", "Timothy Ben"]]}
+{"text": "Ring Prisha Date at 6646726031 regarding the policy renewal.", "pii": [["PERSON", "Prisha Date"], ["IN_PHONE", "6646726031"]]}
+{"text": "Our branch manager Mohammed moved to Bikaner last month.", "pii": [["PERSON", "Mohammed"], ["LOCATION", "Bikaner"]]}
+{"text": "Collect payment via dpradhan@ybl.", "pii": [["UPI_ID", "dpradhan@ybl"]]}
+{"text": "Aadhaar: 9304-1879-6288", "pii": [["IN_AADHAAR", "9304-1879-6288"]]}
+{"text": "Please verify income tax PAN BVNPU2082K.", "pii": [["IN_PAN", "BVNPU2082K"]]}
+{"text": "Card number 4876972792520424 was declined.", "pii": [["CREDIT_CARD", "4876972792520424"]]}
+{"text": "Renew passport F5410373 before travelling.", "pii": [["IN_PASSPORT", "F5410373"]]}
+{"text": "Electoral roll shows EPIC ZWJ3611823.", "pii": [["IN_VOTER_ID", "ZWJ3611823"]]}
+{"text": "Licence no UP-30-1998-7377310 was suspended.", "pii": [["IN_DRIVING_LICENCE", "UP-30-1998-7377310"]]}
+{"text": "Beneficiary account 8171018797, branch code ICIC0095723.", "pii": [["BANK_ACCOUNT", "8171018797"], ["IN_IFSC", "ICIC0095723"]]}
+{"text": "He was born on 08/02/1956 in Jehanabad.", "pii": [["DATE_OF_BIRTH", "08/02/1956"], ["LOCATION", "Jehanabad"]]}
+{"text": "Pincode 362609 is not serviceable.", "pii": [["PIN_CODE", "362609"]]}
+{"text": "Blocked login attempts from 222.39.252.100.", "pii": [["IP_ADDRESS", "222.39.252.100"]]}
+{"text": "Reach the clinic on 07366435069.", "pii": [["PHONE_NUMBER", "07366435069"]]}
+{"text": "thanks, regards pooja mittal", "pii": [["PERSON", "pooja mittal"]]}
+{"text": "to: Vansha Lal\nphone: 09963196063\nemail: yug77@example.com", "pii": [["PERSON", "Vansha Lal"], ["IN_PHONE", "09963196063"], ["EMAIL_ADDRESS", "yug77@example.com"]]}
+{"text": "my otp is 776671", "pii": [["PASSWORD", "776671"]]}
+{"text": "token = sk-proj-uFq9HwM6gFyoNQSW8jpSwijuYATtARhi", "pii": [["API_KEY", "sk-proj-uFq9HwM6gFyoNQSW8jpSwijuYATtARhi"]]}
+{"text": "Chavvi told Mahika that the report was ready.", "pii": [["PERSON", "Chavvi"], ["PERSON", "Mahika"]]}
+{"text": "Invoice 5725321998 is due on 29-06-1984.", "pii": []}
+{"text": "Part number KZQ7410004 is out of stock.", "pii": []}
+{"text": "Revenue grew by 199 percent this year.", "pii": []}
+{"text": "The OTP screen takes too long to load.", "pii": []}
+{"text": "Standup moves to 13 July 1986.", "pii": []}
+{"text": "Kindly forward the statement to wshroff@example.com and copy Yahvi Kala.", "pii": [["EMAIL_ADDRESS", "wshroff@example.com"], ["PERSON", "Yahvi Kala"]]}
+{"text": "Ring Wyatt Pathak at 08818859935 regarding the policy renewal.", "pii": [["PERSON", "Wyatt Pathak"], ["IN_PHONE", "08818859935"]]}
+{"text": "Our branch manager Kamya moved to New Delhi last month.", "pii": [["PERSON", "Kamya"], ["LOCATION", "New Delhi"]]}
+{"text": "Collect payment via shauryasidhu@paytm.", "pii": [["UPI_ID", "shauryasidhu@paytm"]]}
+{"text": "Aadhaar: 879182555305", "pii": [["IN_AADHAAR", "879182555305"]]}
+{"text": "Please verify income tax PAN GKPPS8855H.", "pii": [["IN_PAN", "GKPPS8855H"]]}
+{"text": "Card number 4649382067523929 was declined.", "pii": [["CREDIT_CARD", "4649382067523929"]]}
+{"text": "Renew passport M2794989 before travelling.", "pii": [["IN_PASSPORT", "M2794989"]]}
+{"text": "Electoral roll shows EPIC KVW3470318.", "pii": [["IN_VOTER_ID", "KVW3470318"]]}
+{"text": "Licence no MH-58-2008-5852220 was suspended.", "pii": [["IN_DRIVING_LICENCE", "MH-58-2008-5852220"]]}
+{"text": "Beneficiary account 411394680, branch code SBIN0061644.", "pii": [["BANK_ACCOUNT", "411394680"], ["IN_IFSC", "SBIN0061644"]]}
+{"text": "He was born on 2003-04-07 in Srikakulam.", "pii": [["DATE_OF_BIRTH", "2003-04-07"], ["LOCATION", "Srikakulam"]]}
+{"text": "Pincode 261748 is not serviceable.", "pii": [["PIN_CODE", "261748"]]}
+{"text": "Blocked login attempts from 20.70.110.141.", "pii": [["IP_ADDRESS", "20.70.110.141"]]}
+{"text": "Reach the clinic on +913091732469.", "pii": [["PHONE_NUMBER", "+913091732469"]]}
+{"text": "thanks, regards advaith parsa", "pii": [["PERSON", "advaith parsa"]]}
+{"text": "to: Dalaja Banik\nphone: +91-7039674996\nemail: urmi61@example.org", "pii": [["PERSON", "Dalaja Banik"], ["IN_PHONE", "+91-7039674996"], ["EMAIL_ADDRESS", "urmi61@example.org"]]}
+{"text": "my otp is 380059", "pii": [["PASSWORD", "380059"]]}
+{"text": "token = rzp_live_n7Sx39TeoWnH1tCP7aSCFKm9Ecdndq9v", "pii": [["API_KEY", "rzp_live_n7Sx39TeoWnH1tCP7aSCFKm9Ecdndq9v"]]}
+{"text": "Gautam told Rachit that the report was ready.", "pii": [["PERSON", "Gautam"], ["PERSON", "Rachit"]]}
+{"text": "Invoice 7502222661 is due on 31/03/1991.", "pii": []}
+{"text": "Part number EDF2306659 is out of stock.", "pii": []}
+{"text": "Revenue grew by 110 percent this year.", "pii": []}
+{"text": "The OTP screen takes too long to load.", "pii": []}
+{"text": "Standup moves to 1975-07-30.", "pii": []}

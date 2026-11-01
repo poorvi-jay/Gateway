@@ -10,12 +10,14 @@ For a privacy gateway recall matters more: a miss is a leak, a false flag only
 costs some answer quality. A span counts as caught if any detection overlaps
 it (any entity type), because for leak prevention what matters is that the
 value was masked, not which label it got. Per-type numbers are also reported.
+"Masked" is stricter: a caught value with part of it still showing doesn't count.
 
-Run from the project root:   python -m eval.evaluate
+Run from the project root:   python -m eval.evaluate [path/to/set.jsonl]
 """
 import json
 import os
 import statistics
+import sys
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -28,14 +30,14 @@ from app.policy import load_policy  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def main():
+def main(path: Path):
     policy = load_policy(ROOT / "policy.yaml")
     detector = Detector(policy)
-    rows = [json.loads(l) for l in (ROOT / "eval" / "dataset.jsonl").read_text().splitlines() if l.strip()]
+    rows = [json.loads(l) for l in path.read_text(encoding="utf-8").splitlines() if l.strip()]
 
     tp_gold = fn = tp_pred = fp = 0
     per_type = defaultdict(lambda: [0, 0])  # type -> [caught, total]
-    misses, false_flags, latencies = [], [], []
+    misses, partial, false_flags, latencies = [], [], [], []
 
     detector.detect("warm up the model")
     for row in rows:
@@ -55,6 +57,10 @@ def main():
             if hit:
                 tp_gold += 1
                 per_type[etype][0] += 1
+                covered = {i for p in preds for i in range(p.start, p.end)}
+                exposed = [text[i] for i in range(s, e) if i not in covered and not text[i].isspace()]
+                if exposed:
+                    partial.append(f"{etype:<14} {value!r:<28} in: {text}")
             else:
                 fn += 1
                 misses.append(f"{etype:<14} {value!r:<28} in: {text}")
@@ -70,9 +76,12 @@ def main():
     f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
     lat = sorted(latencies)
 
-    print(f"Model: {os.environ['SPACY_MODEL']}   Sentences: {len(rows)}   "
+    full = (tp_gold - len(partial)) / (tp_gold + fn) if tp_gold + fn else 1.0
+
+    print(f"Set: {path.name}   Model: {os.environ['SPACY_MODEL']}   Sentences: {len(rows)}   "
           f"PII spans: {tp_gold + fn}")
     print(f"\nRecall    {recall:6.1%}   (PII caught; misses would leak)")
+    print(f"Masked    {full:6.1%}   (PII caught with nothing left showing)")
     print(f"Precision {precision:6.1%}   (flags that were really PII)")
     print(f"F1        {f1:6.1%}")
     print(f"\nDetection latency per message: mean {statistics.mean(lat):.1f} ms, "
@@ -82,9 +91,11 @@ def main():
         print(f"  {etype:<14} {c}/{n}")
     print("\nMissed (false negatives):")
     print("\n".join("  " + m for m in misses) or "  none")
+    print("\nPartly masked (part of the value still showing):")
+    print("\n".join("  " + m for m in partial) or "  none")
     print("\nFalse flags (false positives):")
     print("\n".join("  " + f for f in false_flags) or "  none")
 
 
 if __name__ == "__main__":
-    main()
+    main(Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "eval" / "dataset.jsonl")

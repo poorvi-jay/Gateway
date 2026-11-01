@@ -62,7 +62,8 @@ Groq and Gemini; see `.env.example`). Any OpenAI SDK client then works unchanged
 ```bash
 python -m spacy download en_core_web_sm   # small NER model used by the tests
 pytest -q                  # end-to-end + unit tests
-python -m eval.evaluate    # precision / recall / latency
+python -m eval.evaluate    # precision / recall / latency on the hand-written set
+python -m eval.evaluate eval/synthetic_test.jsonl   # on the held-back synthetic set
 ```
 
 ---
@@ -78,6 +79,7 @@ python -m eval.evaluate    # precision / recall / latency
 | `app/tokenizer.py` | Per-request vault: placeholder ↔ value mapping, tokenize and rehydrate |
 | `app/policy.py` + `policy.yaml` | Per-entity action: `tokenize`, `block` or `allow` |
 | `app/audit.py` | JSON-lines audit log with entity types and counts only |
+| `eval/synthetic.py` + `eval/evaluate.py` | Seeded Faker test data; precision, recall and latency scoring |
 
 **Request path**
 1. **Extract every text field** the model will see: system, user and assistant
@@ -91,7 +93,9 @@ python -m eval.evaluate    # precision / recall / latency
      voter ID, bank account, date of birth or PIN code only counts next to a
      word like "passport" or "DOB", so order numbers and ordinary dates pass.
      Passwords have no shape, so the value after "password:" or "OTP is" is masked.
-   - *spaCy NER* for unstructured PII with no fixed shape: names, places.
+   - *spaCy NER* for unstructured PII with no fixed shape: names, places. Two
+     capitalized words in a row and a list of major Indian cities back it up,
+     because NER misses many Indian names and places.
 3. **Known-value propagation.** A value detected once is masked everywhere it
    appears in the request, so an inconsistent NER miss in a later message
    doesn't leak a name that was caught earlier. (A test caught exactly this.)
@@ -132,22 +136,40 @@ python -m eval.evaluate    # precision / recall / latency
 
 ## Evaluation
 
-`python -m eval.evaluate` on 52 hand-labelled sentences (55 PII spans, 13
-sentences with none, Indian names and identifiers):
+Three sets, scored with `python -m eval.evaluate [set]` on CPU at about 20 ms per
+message. *Masked* is stricter than recall: nothing of the value may be left showing.
 
-| Model | Recall | Precision | Mean latency / message |
-|---|---|---|---|
-| `en_core_web_lg` | **100%** | 100% | ~24 ms |
-| `en_core_web_sm` | 87% | 92% | ~22 ms |
+| Set | Model | Recall | Masked | Precision |
+|---|---|---|---|---|
+| **Test**: 200 synthetic sentences, 224 spans | `en_core_web_lg` | **93.8%** | **92.4%** | 90.9% |
+| | `en_core_web_sm` | 91.5% | 91.1% | 96.7% |
+| Dev: 200 synthetic sentences, 256 spans | `en_core_web_lg` | 94.1% | 93.8% | 98.4% |
+| | `en_core_web_sm` | 92.2% | 91.8% | 96.3% |
+| Hand-written: 52 sentences, 55 spans | `en_core_web_lg` | 100% | 100% | 100% |
+| | `en_core_web_sm` | 92.7% | 90.9% | 92.7% |
 
-Regex-based types scored 100% with both models; all misses with the small model
-were names and places, which shows why the NER model choice matters. Measured
-on CPU.
+**Trust the test row.** `eval/synthetic.py` uses Faker's `en_IN` locale with a
+fixed seed. Misses on dev were looked at and fixed; test has its own seed and
+its own sentence templates, and was scored once after the code was frozen. Nothing
+was changed because of it. The hand-written set scored 100% only because the same
+person wrote it and the detectors: the first dev run found 69% recall on names
+and 67% on places, which that set had hidden.
 
-**Caveat:** this dataset is small and was written by the same person who wrote
-the detectors, so these numbers are optimistic. A real evaluation would use an
-independent, larger set (e.g. synthetic data from Faker with Indian locale,
-plus real anonymised samples).
+On the test set with `en_core_web_lg`:
+- **All 17 other types scored 100%**, including every type that blocks a request,
+  with no request falsely blocked. Each has only 8–16 samples.
+- **Names: 84%** (47/56). Misses are lone first names ("Xavier told Viraj") and
+  lowercase names. Rules would mask too much here; this needs a better model.
+- **Landlines: 38%** (3/8). They are only found next to a word like "landline" or
+  "phone", and "Reach the clinic on 05498956489" has none.
+- **One rule mistake:** "Date" is on the list of words that aren't names, so the
+  surname in "Prisha Date" stayed visible.
+- **Precision is mostly one error:** spaCy tags "OTP" as a name. It costs a
+  masked word, not a leak.
+
+**Caveats:** templated sentences are cleaner than real text, and Faker's city
+list overlaps the gateway's own list of major cities, so the 100% on places is
+generous. Real anonymised samples would be a better test still.
 
 ## Alternatives considered
 
@@ -173,15 +195,19 @@ plus real anonymised samples).
 - **Images and files** are rejected. Next: OCR → same detection pipeline.
 - **Other top-level fields.** `messages`, `user` and `tools`/`functions` are
   scanned; anything else, such as `metadata`, is forwarded as it is.
-- **Partial names.** A lone "priya" in lowercase is masked only if NER finds it
-  on its own: matching name words in any case would mask "will" for Will Smith.
-- **Context words.** A voter ID with no word like "voter" nearby is not flagged,
-  and a phrase like "the secret is out" is masked as a password. Addresses are
-  covered only as place names and PIN codes, and pre-2019 licence formats vary
-  by state. A label-conditioned model such as
+- **Names.** Lone first names and lowercase names can leak (see Evaluation). A
+  lone "priya" in lowercase is masked only if NER finds it on its own: matching
+  name words in any case would mask "will" for Will Smith. Two capitalized words
+  are masked as a name, so a title like "Quarterly Review" can be masked too.
+- **Context words.** A voter ID or landline with no word like "voter" or "phone"
+  nearby is not flagged, and a phrase like "the secret is out" is masked as a
+  password. Addresses are covered only as place names and PIN codes, and
+  pre-2019 licence formats vary by state.
+- **A better model.** A label-conditioned model such as
   [GLiNER2-PII](https://huggingface.co/fastino/gliner2-privacy-filter-PII-multi)
-  (Apache 2.0, local) is the likely third layer, but it would need measuring on
-  CPU first and would not replace checksums for block decisions.
+  (Apache 2.0, runs locally) is the likely third layer, and names are where it
+  would help most. It would need measuring on CPU first, and it would not replace
+  checksums for block decisions.
 - **Multi-turn vault.** Placeholders are consistent within a request (which
   carries the full chat history), but not across separate requests. A
   session-scoped, encrypted Redis vault with a TTL would fix that.

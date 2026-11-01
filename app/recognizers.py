@@ -160,6 +160,32 @@ _SECRET_VALUE = (
 )
 
 
+# Safety net for names NER doesn't know, which is many Indian ones: two
+# capitalized words in a row. A false match only masks a phrase. The (?-i:) keeps
+# the case check, as Presidio compiles everything case-insensitively.
+_NOT_NAME = (
+    r"(?:Dear|Hello|Hi|Hey|Thanks|Thank|Regards|Please|Note|Rs|Customer|Support|Team|Project|Manager"
+    r"|Annual|Report|Machine|Learning|Data|Science|Bank|Order|Account|Card|Aadhaar|Voter|Driving"
+    r"|Date|Birth|The|This|That|Our|Your|My|New|Service|Services|Product|Sales|Office)\b"
+)
+_TWO_CAPITALIZED = rf"(?-i:\b(?!{_NOT_NAME})[A-Z][a-z]+ (?!{_NOT_NAME})(?:[A-Z]['’])?[A-Z][a-z]+\b)"
+
+# State capitals and the largest cities: NER misses many of them. Written by
+# hand rather than taken from Faker, which would be copying the eval's answers.
+INDIAN_CITIES = """Agartala Agra Ahmedabad Aizawl Ajmer Aligarh Allahabad Amravati Amritsar
+Asansol Aurangabad Bareilly Belgaum Bengaluru Bangalore Bhilai Bhopal Bhubaneswar Bhiwandi
+Bikaner Chandigarh Chennai Coimbatore Cuttack Daman Dehradun Delhi Dhanbad Dharwad Dispur
+Durgapur Faridabad Firozabad Gandhinagar Gangtok Ghaziabad Gorakhpur Guntur Gurgaon Gurugram
+Guwahati Gwalior Howrah Hubli Hyderabad Imphal Indore Itanagar Jabalpur Jaipur Jalandhar
+Jalgaon Jammu Jamnagar Jamshedpur Jhansi Jodhpur Kalyan Kanpur Kavaratti Kochi Kohima Kolhapur
+Kolkata Kollam Kota Kozhikode Lucknow Ludhiana Madurai Malappuram Mangalore Meerut Moradabad
+Mumbai Mysore Mysuru Nagpur Nanded Nashik Navi Mumbai Nellore Nizamabad Noida Panaji Patna
+Pimpri Port Blair Pondicherry Puducherry Pune Raipur Rajkot Ranchi Saharanpur Salem Shillong
+Shimla Siliguri Solapur Srinagar Surat Thane Thiruvananthapuram Thrissur Tiruchirappalli
+Tirunelveli Tiruppur Udaipur Ujjain Vadodara Varanasi Vasai Vijayawada Visakhapatnam Warangal
+""".replace("Navi Mumbai", "Navi_Mumbai").replace("Port Blair", "Port_Blair").split()
+
+
 def _pattern(entity: str, regex: str, score: float, context=()) -> PatternRecognizer:
     return PatternRecognizer(supported_entity=entity, context=list(context),
                              patterns=[Pattern(entity.lower(), regex, score)])
@@ -188,6 +214,12 @@ def custom_recognizers():
                  ["dob", "d.o.b", "d.o.b.", "birth", "birthdate", "birthday", "born", "bear"]),
         _pattern("PIN_CODE", r"\b[1-9]\d{2}\s?\d{3}\b", NEEDS_CONTEXT,
                  ["pin", "pincode", "postal", "postcode", "zip", "address"]),
+        # Landlines: STD code plus number. Bare digits, so they need context too.
+        _pattern("PHONE_NUMBER", r"(?<![\d+])(?:\+91[\s-]?|0)?\d{2,4}[\s-]?\d{6,8}(?!\d)", NEEDS_CONTEXT,
+                 ["landline", "phone", "telephone", "tel", "fax", "call", "contact"]),
+        _pattern("PERSON", _TWO_CAPITALIZED, 0.55),
+        PatternRecognizer(supported_entity="LOCATION", deny_list_score=0.7,
+                          deny_list=[c.replace("_", " ") for c in INDIAN_CITIES]),
         _pattern("API_KEY", _API_KEY, 0.9),
         _pattern("PASSWORD", _SECRET_VALUE, 0.8),
     ]
