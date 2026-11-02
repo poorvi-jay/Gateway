@@ -8,6 +8,7 @@ validator that rejects random numbers that merely *look* like the identifier.
 Presidio compiles these case-insensitively.
 """
 from presidio_analyzer import Pattern, PatternRecognizer
+from presidio_analyzer.predefined_recognizers import CreditCardRecognizer
 
 # ---------------------------------------------------------------------------
 # Verhoeff checksum (used by Aadhaar). Tables are the standard dihedral-group
@@ -46,8 +47,9 @@ def verhoeff_valid(number: str) -> bool:
 
 
 class AadhaarRecognizer(PatternRecognizer):
-    """12 digits, first digit 2-9, optional spaces/hyphens in 4-4-4 groups,
-    and the last digit must be a valid Verhoeff check digit."""
+    """12 digits, first digit 2-9, optional spaces/hyphens in 4-4-4 groups.
+    A valid Verhoeff check digit is enough on its own. A failed one still counts
+    next to a word like "aadhaar": a mistyped real number is still mostly real."""
 
     def __init__(self):
         super().__init__(
@@ -56,7 +58,7 @@ class AadhaarRecognizer(PatternRecognizer):
                 Pattern(
                     "aadhaar",
                     r"(?<!\d)[2-9]\d{3}[\s-]?\d{4}[\s-]?\d{4}(?!\d)",
-                    0.5,
+                    NEEDS_CONTEXT,
                 )
             ],
             context=["aadhaar", "aadhar", "uid", "uidai"],
@@ -64,8 +66,16 @@ class AadhaarRecognizer(PatternRecognizer):
 
     def validate_result(self, pattern_text: str):
         digits = "".join(ch for ch in pattern_text if ch.isdigit())
-        # True -> confidence raised to max; False -> match discarded
-        return len(digits) == 12 and verhoeff_valid(digits)
+        # True -> confidence raised to max; None -> left to context words
+        return True if verhoeff_valid(digits) else None
+
+
+class CardRecognizer(CreditCardRecognizer):
+    """Presidio's, except a failed Luhn check is left to context words instead
+    of discarded, for the same reason as AadhaarRecognizer."""
+
+    def validate_result(self, pattern_text: str):
+        return True if super().validate_result(pattern_text) else None
 
 
 class PanRecognizer(PatternRecognizer):
@@ -194,10 +204,13 @@ def _pattern(entity: str, regex: str, score: float, context=()) -> PatternRecogn
 def custom_recognizers():
     return [
         AadhaarRecognizer(),
+        CardRecognizer(),
         PanRecognizer(),
         IndianPhoneRecognizer(),
         UpiRecognizer(),
         # A false match on these blocks the request, so they need context too.
+        # Any fourth letter, so a mistyped PAN next to the word is still caught.
+        _pattern("IN_PAN", r"\b[A-Z]{5}\d{4}[A-Z]\b", NEEDS_CONTEXT, ["pan"]),
         _pattern("IN_PASSPORT", r"\b[A-PR-WY][1-9]\d\s?\d{4}[1-9]\b", NEEDS_CONTEXT, ["passport"]),
         _pattern("IN_VOTER_ID", r"\b[A-Z]{3}\d{7}\b", NEEDS_CONTEXT,
                  ["voter", "epic", "election"]),

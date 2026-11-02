@@ -18,6 +18,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 import app.main as gw  # noqa: E402
 from app.detector import Finding, _finding  # noqa: E402
+from app.gliner_compare import entity_type  # noqa: E402
 from app.policy import Policy, load_policy  # noqa: E402
 from app.recognizers import verhoeff_valid  # noqa: E402
 from app.sanitizer import sanitize_request  # noqa: E402
@@ -108,9 +109,8 @@ def test_clean_text_unchanged(client, fake_llm):
 
 # ---------------------------------------------------------------- blocking
 @pytest.mark.parametrize("text,entity", [
-    (f"My Aadhaar is {VALID_AADHAAR}", "IN_AADHAAR"),
     ("Charge card 4111 1111 1111 1111", "CREDIT_CARD"),
-    ("PAN: ABCPE1234F", "IN_PAN"),
+    ("Mistyped card number 4111 1111 1111 1112", "CREDIT_CARD"),
 ])
 def test_sensitive_ids_are_blocked(client, fake_llm, text, entity):
     r = chat(client, text)
@@ -118,6 +118,21 @@ def test_sensitive_ids_are_blocked(client, fake_llm, text, entity):
     assert r.json()["error"]["code"] == "pii_blocked"
     assert entity in r.json()["error"]["message"]
     assert "payload" not in fake_llm  # LLM was never called
+
+
+@pytest.mark.parametrize("text,value,entity", [
+    (f"My Aadhaar is {VALID_AADHAAR}", VALID_AADHAAR, "IN_AADHAAR"),
+    ("my aadhar is 987654321013", "987654321013", "IN_AADHAAR"),  # fails the checksum
+    ("PAN: ABCPE1234F", "ABCPE1234F", "IN_PAN"),
+    ("My PAN is ABCXX1234F", "ABCXX1234F", "IN_PAN"),             # invalid fourth letter
+    ("Driving licence MH12 20110012345", "MH12 20110012345", "IN_DRIVING_LICENCE"),
+])
+def test_ids_are_redacted_and_never_come_back(client, fake_llm, text, value, entity):
+    r = chat(client, text)
+    assert r.status_code == 200
+    assert value not in json.dumps(fake_llm["payload"])
+    answer = r.json()["choices"][0]["message"]["content"]
+    assert f"[REDACTED_{entity}]" in answer and value not in answer
 
 
 @pytest.mark.parametrize("action,sent,answer", [
@@ -147,6 +162,18 @@ class FakeGliner:
         return [Finding("PERSON", s, s + 5, 0.9, "Rahul")]
 
 
+@pytest.mark.parametrize("label,value,expected", [
+    ("password", "ABCPE1234F", "NATIONAL_ID"),
+    ("credit_debit_card", "4987 1234 5679", "NATIONAL_ID"),
+    ("password", "aadhar 987654321012", "NATIONAL_ID"),
+    ("account_number", "123456789012", "BANK_ACCOUNT"),   # fails the Aadhaar checksum
+    ("credit_debit_card", "4111 1111 1111 1111", "CREDIT_CARD"),
+    ("password", "hunter2", "PASSWORD"),
+])
+def test_gliner_labels_pan_and_aadhaar_as_national_id(label, value, expected):
+    assert entity_type(label, value) == expected
+
+
 def test_gliner_comparison_is_off_by_default(client):
     body = {"messages": [{"role": "user", "content": "hi"}]}
     assert client.post("/debug/gliner", json=body).json() == {"available": False}
@@ -171,7 +198,6 @@ def test_unknown_policy_action_refuses_to_start(tmp_path):
     ("My passport number is K1234567", "IN_PASSPORT"),
     ("K1234567 is my passport", "IN_PASSPORT"),
     ("Voter ID ABC1234567", "IN_VOTER_ID"),
-    ("Driving licence MH12 20110012345", "IN_DRIVING_LICENCE"),
     ("Use sk-proj-abc123def456ghi789jkl012", "API_KEY"),
     ("key = AKIAIOSFODNN7EXAMPLE", "API_KEY"),
     ("token rzp_live_abcdef1234567890", "API_KEY"),
@@ -213,6 +239,8 @@ def test_new_types_are_tokenized(client, fake_llm, text, secret, placeholder):
     "Order 123456789012 has shipped",        # digits alone are not an account
     "Shopping cart 560001 is empty",         # "pin" must not match inside "shopping"
     "Ticket K1234567 and batch ABC1234567",  # ID shapes alone must not block
+    "Reference 4111 1111 1111 1112 closed",  # a failed Luhn check needs a word like "card"
+    "Part ABCXX1234F is in stock",           # PAN shape needs the word "PAN"
     "Password is required for this form",
     "Send the token issue logs today",       # "is" must not match inside "issue"
     "Ask Customer Support about it",         # not every capitalized pair is a name
@@ -387,7 +415,7 @@ def test_legacy_functions_are_scanned(client, fake_llm):
 
 
 def test_blocked_id_in_tool_definition_blocks_request(client, fake_llm):
-    r = chat(client, "hi", tools=[tool(f"Aadhaar {VALID_AADHAAR}")])
+    r = chat(client, "hi", tools=[tool("Card 4111 1111 1111 1111")])
     assert r.status_code == 400 and r.json()["error"]["code"] == "pii_blocked"
     assert "payload" not in fake_llm
 

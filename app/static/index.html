@@ -26,7 +26,7 @@
     margin: 0; background: var(--bg); color: var(--text);
     font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
-  main { max-width: 1080px; margin: 0 auto; padding: 32px 16px 48px; }
+  main { max-width: 1400px; margin: 0 auto; padding: 32px 16px 48px; }
   h1 { margin: 0; font-size: 1.6rem; line-height: 1.25; }
   .lead { margin: 6px 0 24px; color: var(--muted); }
   label { display: block; margin-bottom: 6px; font-weight: 600; }
@@ -51,9 +51,9 @@
     margin: 20px 0 0; padding: 12px 14px; border-radius: 8px;
     background: var(--danger-bg); color: var(--danger-text); font-weight: 600;
   }
-  .panels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
-  .panels.compare { grid-template-columns: repeat(2, 1fr); }
-  @media (max-width: 800px) { .panels, .panels.compare { grid-template-columns: 1fr; } }
+  .panels { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 20px; }
+  @media (max-width: 1100px) { .panels { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 800px) { .panels { grid-template-columns: 1fr; } }
   section { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
   h2 { margin: 0 0 8px; font-size: .95rem; }
   .output { margin: 0; min-height: 3em; white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -72,7 +72,7 @@
     <textarea id="input">Write a two-line payment reminder addressed to Rahul Sharma that lists their email rahul.s@gmail.com and phone 9876543210.</textarea>
     <div class="controls" id="samples">
       <button type="button" data-text="Write a two-line payment reminder addressed to Rahul Sharma that lists their email rahul.s@gmail.com and phone 9876543210.">Name, email, phone</button>
-      <button type="button" data-text="Verify Aadhaar 4987 1234 5679">Aadhaar</button>
+      <button type="button" data-text="Complete this sentence: Thank you Rahul Sharma, we have received Aadhaar 4987 1234 5679 and">Aadhaar</button>
       <button type="button" data-text="Charge card 4111 1111 1111 1111">Credit card</button>
       <button type="button" data-text="Refund Priya Nair to account number 123456789012, IFSC HDFC0001234. Tell Priya once it is done.">Bank details</button>
       <button type="button" data-text="Why does sk-proj-abc123def456ghi789jkl012 return a 401?">API key</button>
@@ -85,21 +85,21 @@
 
   <div class="panels" id="panels" aria-live="polite">
     <section>
-      <h2>1. You wrote</h2>
+      <h2>Input</h2>
       <p class="output empty" id="wrote">Nothing sent yet.</p>
     </section>
     <section>
-      <h2>2. The LLM saw</h2>
+      <h2>Our model</h2>
       <p class="output empty" id="saw">Nothing sent yet.</p>
       <p class="meta" id="found"></p>
     </section>
-    <section id="gliner" hidden>
-      <h2>NVIDIA GLiNER would mask</h2>
+    <section id="gliner">
+      <h2>NVIDIA GLiNER</h2>
       <p class="output empty" id="gsaw">Nothing sent yet.</p>
       <p class="meta" id="gstats"></p>
     </section>
     <section>
-      <h2>3. You got back</h2>
+      <h2>Output</h2>
       <p class="output empty" id="got">Nothing sent yet.</p>
       <p class="meta" id="stats"></p>
     </section>
@@ -162,15 +162,14 @@
   async function compare(messages) {
     const run = ++latest;
     el("gstats").textContent = "";
-    if (!el("gliner").hidden) show("gsaw", "Running on this machine…", true);
+    show("gsaw", "Running…", true);
     try {
       const { data } = await post("/debug/gliner", { messages });
-      if (run !== latest || !data.available) return;
-      el("gliner").hidden = false;
-      el("panels").classList.add("compare");
+      if (run !== latest) return;
+      if (!data.available) return show("gsaw", "Runs locally only, see the README.", true);
       showMasked("gsaw", data.masked);
-      const found = data.entity_types.length ? `Would mask: ${friendly(data.entity_types)}` : "Found nothing";
-      el("gstats").textContent = `${found} · Not sent anywhere · ${data.latency_ms} ms`;
+      const found = data.entity_types.length ? friendly(data.entity_types) : "Found nothing";
+      el("gstats").textContent = `${found} · ${data.latency_ms} ms`;
     } catch (error) {
       if (run === latest) show("gsaw", "Comparison failed.", true);
     }
@@ -181,7 +180,7 @@
     const text = el("input").value.trim();
     if (!text) return;
     const messages = [{ role: "user", content: text }];
-    compare(messages);
+    const compared = compare(messages);
 
     el("send").disabled = true;
     el("banner").hidden = true;
@@ -197,6 +196,7 @@
       if (sanitized.data.blocked) {
         showBanner(`Blocked: this message contains: ${friendly(sanitized.data.entity_types)}. Nothing was sent to the LLM.`);
         show("saw", "Nothing. The request was stopped at the gateway.", true);
+        await compared;
         show("got", "No answer, because nothing was sent.", true);
         return;
       }
@@ -208,6 +208,7 @@
       const chat = await post("/v1/chat/completions", { model: "any", messages });
       if (!chat.response.ok) throw new Error(failure(chat));
 
+      await compared;  // Output always lands last, after the GLiNER panel.
       show("got", chat.data.choices[0].message.content ?? "");
       const latency = chat.response.headers.get("x-gateway-latency-ms");
       el("stats").textContent = `Model: ${chat.data.model}` + (latency ? ` · Gateway time: ${latency} ms` : "");

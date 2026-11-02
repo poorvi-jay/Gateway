@@ -56,6 +56,7 @@ class Detector:
             context_aware_enhancer=LemmaContextAwareEnhancer(
                 context_suffix_count=3, context_matching_mode="whole_word"),
         )
+        self.analyzer.registry.remove_recognizer("CreditCardRecognizer")  # see CardRecognizer
         for rec in custom_recognizers():
             self.analyzer.registry.add_recognizer(rec)
 

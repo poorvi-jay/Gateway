@@ -37,7 +37,7 @@ uvicorn app.main:app --port 8000 --env-file .env
 ```
 
 Try it in the browser at <http://localhost:8000>: type a message and see what
-you wrote, what the LLM saw and what came back. The page uses `/debug/sanitize`,
+your input, what our model sent to the LLM, what GLiNER would mask (when enabled) and the output. The page uses `/debug/sanitize`,
 so it needs `ENABLE_DEBUG=true`. Or from the command line:
 
 ```bash
@@ -49,9 +49,12 @@ curl -s localhost:8000/debug/sanitize -H 'content-type: application/json' \
 curl -s localhost:8000/v1/chat/completions -H 'content-type: application/json' \
   -d '{"model":"x","messages":[{"role":"user","content":"Call Rahul Sharma on 9876543210"}]}'
 
-# Blocked: Aadhaar never leaves
+# Blocked: a card number stops the whole request
 curl -s localhost:8000/v1/chat/completions -H 'content-type: application/json' \
-  -d '{"model":"x","messages":[{"role":"user","content":"Verify Aadhaar 4987 1234 5679"}]}'
+  -d '{"model":"x","messages":[{"role":"user","content":"Charge card 4111 1111 1111 1111"}]}'
+
+# Redacted: Aadhaar, PAN and driving licence are removed for good
+curl -s localhost:8000/v1/chat/completions -H 'content-type: application/json'   -d '{"model":"x","messages":[{"role":"user","content":"Complete this sentence: We received Aadhaar 4987 1234 5679 and"}]}'
 ```
 
 To use a real LLM, set `UPSTREAM_BASE_URL`, `UPSTREAM_API_KEY` and
@@ -104,11 +107,10 @@ python -m eval.evaluate eval/synthetic_test.jsonl   # on the held-back synthetic
    becomes the same `<PERSON_1>`, unless two people share that word.
 4. **Policy.** If any `block` entity is present the request is rejected and the
    LLM is never called. Otherwise, values are replaced with placeholders.
-   Any type can be switched in `policy.yaml`, for example
-   `IN_AADHAAR: tokenize` (masked, restored in the answer) or `IN_AADHAAR: redact`
-   (`[REDACTED_IN_AADHAAR]`, never restored); restart to apply. Blocking is the
-   default for IDs because it also holds back anything else in that message
-   that detection missed.
+   `redact` types (Aadhaar, PAN, driving licence) become `[REDACTED_IN_AADHAAR]`
+   and are never restored, so the request still gets an answer. Any type can be
+   switched in `policy.yaml`; restart to apply. Blocking is stricter because it
+   also holds back anything else in that message that detection missed.
 5. **Consistent placeholders.** The same value gets the same placeholder across
    the whole conversation, so the model can still reason ("<PERSON_1> emailed
    <PERSON_2>, then <PERSON_1> replied").
@@ -153,9 +155,9 @@ message. *Masked* is stricter than recall: nothing of the value may be left show
 | | `en_core_web_sm` | 92.2% | 91.8% | 96.3% |
 | Hand-written: 52 sentences, 55 spans | `en_core_web_lg` | 100% | 100% | 100% |
 | | `en_core_web_sm` | 92.7% | 90.9% | 92.7% |
-| Test, comparison only | NVIDIA GLiNER-PII, local CPU | 98.2% | 98.2% | 81.2% |
-| Dev, comparison only | NVIDIA GLiNER-PII, local CPU | 98.0% | 96.9% | 88.8% |
-| Hand-written, comparison only | NVIDIA GLiNER-PII, local CPU | 98.2% | 98.2% | 87.1% |
+| Test, comparison only | NVIDIA GLiNER-PII, local CPU | 97.3% | 97.3% | 82.7% |
+| Dev, comparison only | NVIDIA GLiNER-PII, local CPU | 98.0% | 96.5% | 91.6% |
+| Hand-written, comparison only | NVIDIA GLiNER-PII, local CPU | 100% | 100% | 88.7% |
 
 **Trust the test row.** `eval/synthetic.py` uses Faker's `en_IN` locale with a
 fixed seed. Misses on dev were looked at and fixed; test has its own seed and
@@ -167,6 +169,11 @@ and 67% on places, which that set had hidden.
 On the test set with `en_core_web_lg`:
 - **All 17 other types scored 100%**, including every type that blocks a request,
   with no request falsely blocked. Each has only 8–16 samples.
+- **Mistyped IDs are not in these sets.** A manual test found "my aadhar is
+  987654321013", one digit off, going out unmasked because a failed checksum
+  discarded the match. Aadhaar, card and PAN near-misses are now caught when a word
+  like "aadhaar" is nearby. All sets were rescored after that fix and did not change,
+  so these numbers neither show the leak nor prove the fix; tests cover it instead.
 - **Names: 84%** (47/56). Misses are lone first names ("Xavier told Viraj") and
   lowercase names. Rules would mask too much here; this needs a better model.
 - **Landlines: 38%** (3/8). They are only found next to a word like "landline" or
@@ -176,14 +183,17 @@ On the test set with `en_core_web_lg`:
 - **Precision is mostly one error:** spaCy tags "OTP" as a name. It costs a
   masked word, not a leak.
 
-**NVIDIA GLiNER-PII on the same data** (`--gliner`, label list fixed before scoring,
-nothing tuned): it caught all 56 names and all 8 landlines, the gateway's two weak
-spots, and missed 4 of 224 values (2 mobiles, 2 OTPs). Three costs keep it optional:
-- **Speed and size:** about 2.8 s per message on CPU against about 20 ms, 2.2 GB of
+**NVIDIA GLiNER-PII on the same data** (`--gliner`): it caught all 56 names and all 8
+landlines, the gateway's two weak spots, and missed 6 of 224 values (3 OTPs, 2 AWS
+keys, 1 voter ID). Its Aadhaar and PAN labels were added after a first test run, so
+unlike the gateway's rows this one is not a one-shot score. That change moved test
+recall from 98.2% to 97.3%. Three costs keep it optional:
+- **Speed and size:** about 3 s per message on CPU against about 20 ms, 2.2 GB of
   memory and a 1.8 GB model.
 - **False flags:** it marks invoice numbers, part numbers and ordinary dates as
   personal data, which would remove details the model needs.
-- **Labels can't drive blocking:** it tagged a real Aadhaar number as a card number.
+- **Labels can't drive policy:** it tagged a real Aadhaar number as a card number and a
+  PAN as a password, so the comparison panel relabels those shapes as `NATIONAL_ID`.
   Recall above counts any label, so these scores say the value was hidden, not that
   the type was right. Block decisions stay with checksums.
 

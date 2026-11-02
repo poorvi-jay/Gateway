@@ -5,7 +5,10 @@ Runs on this machine, never through NVIDIA's hosted API, which would send the
 raw PII out. It is shown beside the real result only: nothing here changes what
 reaches the LLM. Needs requirements-gliner.txt and ENABLE_GLINER=true.
 """
+import re
+
 from .detector import Finding
+from .recognizers import verhoeff_valid
 from .tokenizer import Vault, tokenize
 
 MODEL = "nvidia/gliner-pii"
@@ -24,11 +27,25 @@ LABELS = {
     "account_number": "BANK_ACCOUNT",
     "bank_routing_number": "IN_IFSC",
     "national_id": "NATIONAL_ID",
-    "tax_id": "IN_PAN",
+    "aadhaar_number": "NATIONAL_ID",
+    "pan_number": "NATIONAL_ID",
+    "tax_id": "NATIONAL_ID",
     "api_key": "API_KEY",
     "password": "PASSWORD",
     "ipv4": "IP_ADDRESS",
 }
+
+PAN_RE = re.compile(r"\b[A-Z]{5}\d{4}[A-Z]\b", re.IGNORECASE)
+AADHAAR_RE = re.compile(r"(?<!\d)[2-9]\d{3}[\s-]?\d{4}[\s-]?\d{4}(?!\d)")
+
+
+def entity_type(label: str, value: str) -> str:
+    """The model calls these a card or a password as often as an ID, so the
+    value's shape decides."""
+    aadhaar = AADHAAR_RE.search(value)
+    if PAN_RE.search(value) or (aadhaar and verhoeff_valid(re.sub(r"\D", "", aadhaar.group()))):
+        return "NATIONAL_ID"
+    return LABELS[label]
 
 
 class GlinerDetector:
@@ -38,8 +55,8 @@ class GlinerDetector:
 
     def detect(self, text: str) -> list[Finding]:
         found = self.model.predict_entities(text, list(LABELS), threshold=THRESHOLD)
-        return [Finding(LABELS[f["label"]], f["start"], f["end"], f["score"], text[f["start"]:f["end"]])
-                for f in found]
+        return [Finding(entity_type(f["label"], text[f["start"]:f["end"]]), f["start"], f["end"],
+                        f["score"], text[f["start"]:f["end"]]) for f in found]
 
 
 def mask(text: str, detector) -> tuple[str, list[str]]:

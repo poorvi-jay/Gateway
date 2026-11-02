@@ -11,13 +11,15 @@ score_threshold: 0.5      # ignore detections below this confidence
 
 entities:
   # --- too sensitive to send even as a placeholder context ---
-  IN_AADHAAR: block
   CREDIT_CARD: block
-  IN_PAN: block
   IN_PASSPORT: block
   IN_VOTER_ID: block
-  IN_DRIVING_LICENCE: block
   API_KEY: block
+
+  # --- removed for good: the rest of the message still goes through ---
+  IN_AADHAAR: redact
+  IN_PAN: redact
+  IN_DRIVING_LICENCE: redact
 
   # --- replaced with placeholders, restored in the answer ---
   PERSON: tokenize
