@@ -178,7 +178,8 @@ _NOT_NAME = (
     r"|Annual|Report|Machine|Learning|Data|Science|Bank|Order|Account|Card|Aadhaar|Voter|Driving"
     r"|Date|Birth|The|This|That|Our|Your|My|New|Service|Services|Product|Sales|Office)\b"
 )
-_TWO_CAPITALIZED = rf"(?-i:\b(?!{_NOT_NAME})[A-Z][a-z]+ (?!{_NOT_NAME})(?:[A-Z]['’])?[A-Z][a-z]+\b)"
+# Runs of three too: "Refund Priya Nair" must not stop at "Refund Priya".
+_TWO_CAPITALIZED = rf"(?-i:\b(?!{_NOT_NAME})[A-Z][a-z]+(?: (?!{_NOT_NAME})(?:[A-Z]['’])?[A-Z][a-z]+)+\b)"
 
 # State capitals and the largest cities: NER misses many of them. Written by
 # hand rather than taken from Faker, which would be copying the eval's answers.

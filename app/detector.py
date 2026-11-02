@@ -24,7 +24,8 @@ PLACEHOLDER_RE = re.compile(r"<[A-Z][A-Z_]*_\d+>")
 
 # NER sometimes pulls the verb into the name: "[Email Rahul Sharma] at ...".
 PERSON_LEAD_RE = re.compile(
-    r"(?:e-?mail|mail|call|phone|text|message|contact|ping|sms|whatsapp)\s+", re.IGNORECASE)
+    r"(?:e-?mail|mail|call|phone|text|message|contact|ping|sms|whatsapp"
+    r"|refund|tell|remind|pay|ask|send|notify|inform|thank)\s+", re.IGNORECASE)
 
 # Business terms NER mistakes for places.
 ALLOWED_TERMS = ["Q1", "Q2", "Q3", "Q4"]
@@ -86,7 +87,7 @@ class Detector:
             for r in results
             if not _overlaps_any(r.start, r.end, placeholder_spans)
         ]
-        return self._resolve_overlaps(findings)
+        return self._resolve_overlaps(_merge_names(findings, text))
 
     def _resolve_overlaps(self, findings: list[Finding]) -> list[Finding]:
         """When two matches overlap (e.g. PHONE_NUMBER and IN_PHONE on the same
@@ -111,6 +112,19 @@ def _finding(result, text: str) -> Finding:
         if lead and lead.end() < result.end:
             start = lead.end()
     return Finding(result.entity_type, start, result.end, result.score, text[start:result.end])
+
+
+def _merge_names(findings: list[Finding], text: str) -> list[Finding]:
+    """Overlapping name matches are one name: keeping only the stronger of
+    "[Priya]" and "[Priya Nair]" would leave "Nair" showing."""
+    names: list[Finding] = []
+    for f in sorted((f for f in findings if f.entity_type == "PERSON"), key=lambda f: f.start):
+        if names and f.start < names[-1].end:
+            start, end = names[-1].start, max(names[-1].end, f.end)
+            names[-1] = Finding("PERSON", start, end, max(names[-1].score, f.score), text[start:end])
+        else:
+            names.append(f)
+    return names + [f for f in findings if f.entity_type != "PERSON"]
 
 
 def _overlaps_any(start: int, end: int, spans: list[tuple[int, int]]) -> bool:

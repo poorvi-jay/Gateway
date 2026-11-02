@@ -17,7 +17,7 @@ import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 import app.main as gw  # noqa: E402
-from app.detector import Finding, _finding  # noqa: E402
+from app.detector import Finding, _finding, _merge_names  # noqa: E402
 from app.gliner_compare import GlinerDetector, entity_type  # noqa: E402
 from app.policy import Policy, load_policy  # noqa: E402
 from app.recognizers import verhoeff_valid  # noqa: E402
@@ -530,6 +530,22 @@ def test_wrong_api_key_rejected(client, fake_llm, monkeypatch):
 
 
 # ---------------------------------------------------------------- precision
+@pytest.mark.parametrize("text,sent", [
+    ("Refund Priya Nair today. Tell Priya once it is done.",
+     "Refund <PERSON_1> today. Tell <PERSON_1> once it is done."),
+    ("Reimburse Priya Nair today", "<PERSON_1> today"),  # not a known verb: masked whole, no leak
+])
+def test_word_before_a_full_name_leaves_no_part_showing(client, fake_llm, text, sent):
+    chat(client, text)
+    assert fake_llm["user_text"] == sent
+
+
+def test_overlapping_names_are_merged():
+    found = _merge_names([Finding("PERSON", 0, 5, 0.85, "Priya"),
+                          Finding("PERSON", 0, 10, 0.55, "Priya Nair")], "Priya Nair left")
+    assert [f.text for f in found] == ["Priya Nair"]
+
+
 def test_verb_is_not_masked_as_part_of_name():
     text = "Email Rahul Sharma now"
 

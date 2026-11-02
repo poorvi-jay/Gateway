@@ -167,10 +167,10 @@ message. *Masked* is stricter than recall: nothing of the value may be left show
 |---|---|---|---|---|
 | **Test**: 200 synthetic sentences, 224 spans | `en_core_web_lg` | **93.8%** | **92.4%** | 90.9% |
 | | `en_core_web_sm` | 91.5% | 91.1% | 96.7% |
-| Dev: 200 synthetic sentences, 256 spans | `en_core_web_lg` | 94.1% | 93.8% | 98.4% |
+| Dev: 200 synthetic sentences, 256 spans | `en_core_web_lg` | 94.1% | 94.1% | 98.4% |
 | | `en_core_web_sm` | 92.2% | 91.8% | 96.3% |
 | Hand-written: 52 sentences, 55 spans | `en_core_web_lg` | 100% | 100% | 100% |
-| | `en_core_web_sm` | 92.7% | 90.9% | 92.7% |
+| | `en_core_web_sm` | 92.7% | 92.7% | 92.7% |
 | Test, comparison only | NVIDIA GLiNER-PII, local CPU | 97.3% | 97.3% | 82.7% |
 | Dev, comparison only | NVIDIA GLiNER-PII, local CPU | 98.0% | 96.5% | 91.6% |
 | Hand-written, comparison only | NVIDIA GLiNER-PII, local CPU | 100% | 100% | 88.7% |
