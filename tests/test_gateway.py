@@ -9,6 +9,8 @@ import os
 os.environ.setdefault("SPACY_MODEL", "en_core_web_sm")
 os.environ["AUDIT_LOG_PATH"] = os.path.join(os.path.dirname(__file__), "test_audit.log")
 os.environ["POLICY_PATH"] = os.path.join(os.path.dirname(__file__), "..", "policy.yaml")
+os.environ["RATE_LIMIT_PER_MIN"] = "0"         # the suite sends far more than 30/min
+os.environ["GLOBAL_RATE_LIMIT_PER_MIN"] = "0"
 
 import json  # noqa: E402
 
@@ -719,3 +721,77 @@ def test_unknown_placeholder_left_alone():
     v = Vault()
     v.placeholder_for("PERSON", "Asha")
     assert rehydrate("<PERSON_1> and <PERSON_9>", v) == "Asha and <PERSON_9>"
+
+
+# ---------------------------------------------------------------- pre-submission hardening
+def test_misspelled_policy_type_refuses_to_start(tmp_path):
+    from app.detector import Detector
+    bad = tmp_path / "policy.yaml"
+    bad.write_text("entities:\n  IN_AADHAR: redact\n")   # typo for IN_AADHAAR
+    with pytest.raises(ValueError, match="IN_AADHAR"):
+        Detector(load_policy(bad))
+
+
+def test_more_than_one_choice_rejected(client, fake_llm):
+    r = chat(client, "hello", n=3)
+    assert r.status_code == 400
+    assert "payload" not in fake_llm
+
+
+@pytest.mark.parametrize("extra,key,expected", [
+    ({}, "max_tokens", 1024),
+    ({"max_tokens": 50_000}, "max_tokens", 1024),
+    ({"max_tokens": 200}, "max_tokens", 200),
+    ({"max_completion_tokens": 50_000}, "max_completion_tokens", 1024),
+])
+def test_output_tokens_capped(client, fake_llm, extra, key, expected):
+    assert chat(client, "hello", **extra).status_code == 200
+    assert fake_llm["payload"][key] == expected
+
+
+def test_bad_max_tokens_rejected(client, fake_llm):
+    assert chat(client, "hello", max_tokens="lots").status_code == 400
+    assert "payload" not in fake_llm
+
+
+def test_debug_routes_have_a_smaller_body_limit(client):
+    big = {"messages": [{"role": "user", "content": "a " * 15_000}]}
+    assert client.post("/debug/sanitize", json=big).status_code == 400
+    assert client.post("/debug/gliner", json=big).status_code == 400
+
+
+def test_debug_sanitize_fails_closed_on_error(client, monkeypatch):
+    def boom(*a, **k):
+        raise RuntimeError("model crashed")
+    monkeypatch.setattr(client.app.state.detector, "detect", boom)
+    r = client.post("/debug/sanitize", json={"messages": [{"role": "user", "content": "hi Rahul"}]})
+    assert r.status_code == 503
+
+
+def test_debug_sanitize_runs_off_the_event_loop(client, monkeypatch):
+    # A slow scan must hit the timeout, not hang the server.
+    import time as _t
+    monkeypatch.setattr(gw, "DETECTION_TIMEOUT_S", 0.2)
+    monkeypatch.setattr(client.app.state.detector, "detect", lambda *a, **k: _t.sleep(1) or [])
+    r = client.post("/debug/sanitize", json={"messages": [{"role": "user", "content": "slow"}]})
+    assert r.status_code == 503
+
+
+def test_rate_limit(client, fake_llm, monkeypatch):
+    monkeypatch.setattr(gw, "RATE_LIMIT_PER_MIN", 3)
+    monkeypatch.setattr(gw, "limiter", gw.RateLimiter())
+    codes = [chat(client, "hello").status_code for _ in range(4)]
+    assert codes == [200, 200, 200, 429]
+    # a different client still gets through
+    r = client.post(URL, headers={"x-forwarded-for": "203.0.113.9"},
+                    json={"model": "x", "messages": [{"role": "user", "content": "hi"}]})
+    assert r.status_code == 200
+
+
+def test_global_rate_limit_stops_forged_ips(client, fake_llm, monkeypatch):
+    monkeypatch.setattr(gw, "GLOBAL_RATE_LIMIT_PER_MIN", 2)
+    monkeypatch.setattr(gw, "limiter", gw.RateLimiter())
+    codes = [client.post(URL, headers={"x-forwarded-for": f"198.51.100.{i}"},
+                         json={"model": "x", "messages": [{"role": "user", "content": "hi"}]}
+                         ).status_code for i in range(3)]
+    assert codes == [200, 200, 429]

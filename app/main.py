@@ -13,6 +13,7 @@ import os
 import secrets
 import time
 import uuid
+from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -37,6 +38,44 @@ REDACT_RESPONSE_PII = os.getenv("REDACT_RESPONSE_PII", "false").lower() == "true
 ENABLE_GLINER = os.getenv("ENABLE_GLINER", "false").lower() == "true"
 GLINER_URL = os.getenv("GLINER_URL")                  # our Cloud Run service, see gliner_service/
 MAX_BODY_BYTES = 200_000
+DEBUG_MAX_BODY_BYTES = int(os.getenv("DEBUG_MAX_BODY_BYTES", "20000"))
+MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "1024"))   # 0 = no cap
+RATE_LIMIT_PER_MIN = int(os.getenv("RATE_LIMIT_PER_MIN", "30"))   # per client, 0 = off
+GLOBAL_RATE_LIMIT_PER_MIN = int(os.getenv("GLOBAL_RATE_LIMIT_PER_MIN", "120"))  # 0 = off
+
+
+class RateLimiter:
+    """Sliding one-minute window, in memory. Enough for a single-instance demo
+    (the deploy allows max 1 instance); several instances would need Redis."""
+
+    def __init__(self):
+        self.hits: dict[str, deque] = defaultdict(deque)
+
+    def allow(self, key: str, limit: int) -> bool:
+        if limit <= 0:
+            return True
+        now = time.monotonic()
+        q = self.hits[key]
+        while q and now - q[0] > 60:
+            q.popleft()
+        if len(q) >= limit:
+            return False
+        q.append(now)
+        return True
+
+
+limiter = RateLimiter()
+
+
+def rate_limited(request: Request) -> JSONResponse | None:
+    # Cloud Run puts the real client first in X-Forwarded-For. A client can
+    # forge that header, which is why there is also a global limit.
+    fwd = request.headers.get("x-forwarded-for", "")
+    client = fwd.split(",")[0].strip() or (request.client.host if request.client else "?")
+    if not limiter.allow("global", GLOBAL_RATE_LIMIT_PER_MIN) or \
+            not limiter.allow(f"ip:{client}", RATE_LIMIT_PER_MIN):
+        return error(429, "Rate limit exceeded, try again in a minute", "rate_limited")
+    return None
 
 
 @asynccontextmanager
@@ -88,10 +127,10 @@ def check_auth(request: Request) -> bool:
     return secrets.compare_digest(header.encode(), f"Bearer {GATEWAY_API_KEY}".encode())
 
 
-async def read_body(request: Request) -> dict | None:
+async def read_body(request: Request, limit: int = MAX_BODY_BYTES) -> dict | None:
     """The chat request as a dict, or None if it isn't one we can inspect."""
     try:
-        if len(await request.body()) > MAX_BODY_BYTES:
+        if len(await request.body()) > limit:
             return None
         payload = await request.json()
     except Exception:
@@ -118,6 +157,8 @@ async def chat_completions(request: Request):
 
     if not check_auth(request):
         return error(401, "Invalid gateway API key", "unauthorized")
+    if limited := rate_limited(request):
+        return limited
 
     payload = await read_body(request)
     if payload is None:
@@ -125,6 +166,20 @@ async def chat_completions(request: Request):
 
     if payload.get("stream"):
         return error(400, "Streaming is not supported by this gateway yet", "unsupported")
+
+    # Spend controls: one answer per request, and a cap on its length.
+    n = payload.get("n", 1)
+    if not isinstance(n, int) or n != 1:
+        return error(400, "Only n=1 is supported", "invalid_request")
+    if MAX_OUTPUT_TOKENS > 0:
+        for key in ("max_tokens", "max_completion_tokens"):
+            v = payload.get(key)
+            if v is not None and (not isinstance(v, int) or isinstance(v, bool) or v < 1):
+                return error(400, f"{key} must be a positive integer", "invalid_request")
+        asked = payload.get("max_completion_tokens") or payload.get("max_tokens") or MAX_OUTPUT_TOKENS
+        payload.pop("max_tokens", None)
+        payload["max_completion_tokens" if "max_completion_tokens" in payload else "max_tokens"] = \
+            min(asked, MAX_OUTPUT_TOKENS)
 
     detector, policy = request.app.state.detector, request.app.state.policy
 
@@ -188,15 +243,25 @@ async def debug_sanitize(request: Request):
         return error(404, "Not found", "not_found")
     if not check_auth(request):
         return error(401, "Invalid gateway API key", "unauthorized")
-    payload = await read_body(request)
+    if limited := rate_limited(request):
+        return limited
+    payload = await read_body(request, DEBUG_MAX_BODY_BYTES)
     if payload is None:
-        return error(400, "Body must be a JSON object with a messages list, under 200 KB", "invalid_request")
+        return error(400, f"Body must be a JSON object with a messages list, under "
+                          f"{DEBUG_MAX_BODY_BYTES // 1000} KB", "invalid_request")
+    # Same as the main route: off the event loop and time-limited, so one big
+    # message can't stall every other request.
     try:
-        result = sanitize_request(payload, request.app.state.detector, request.app.state.policy)
+        result = await asyncio.wait_for(
+            asyncio.to_thread(sanitize_request, payload, request.app.state.detector,
+                              request.app.state.policy),
+            timeout=DETECTION_TIMEOUT_S)
     except BlockedRequest as e:
         return {"blocked": True, "entity_types": e.entity_types}
     except UnsupportedContent as e:
         return error(400, str(e), "unsupported_content")
+    except Exception:
+        return error(503, "PII inspection failed", "inspection_failed")
     return {"blocked": False, "sent_to_llm": result.payload["messages"],
             **{k: result.payload[k] for k in ("user", "tools", "functions") if k in result.payload},
             "entity_types": result.entity_types}
@@ -210,9 +275,12 @@ async def debug_gliner(request: Request):
         return error(404, "Not found", "not_found")
     if not check_auth(request):
         return error(401, "Invalid gateway API key", "unauthorized")
-    payload = await read_body(request)
+    if limited := rate_limited(request):
+        return limited
+    payload = await read_body(request, DEBUG_MAX_BODY_BYTES)
     if payload is None:
-        return error(400, "Body must be a JSON object with a messages list, under 200 KB", "invalid_request")
+        return error(400, f"Body must be a JSON object with a messages list, under "
+                          f"{DEBUG_MAX_BODY_BYTES // 1000} KB", "invalid_request")
     gliner = request.app.state.gliner
     if gliner is None:
         return {"available": False}
