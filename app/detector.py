@@ -60,6 +60,12 @@ class Detector:
         self.analyzer.registry.remove_recognizer("CreditCardRecognizer")  # see CardRecognizer
         for rec in custom_recognizers():
             self.analyzer.registry.add_recognizer(rec)
+        # A misspelled type in policy.yaml (IN_AADHAR) would otherwise match
+        # nothing and silently switch detection off for that type.
+        unknown = set(policy.actions) - set(self.analyzer.get_supported_entities(language="en"))
+        if unknown:
+            raise ValueError(f"policy.yaml names entity types no recognizer supports: "
+                             f"{sorted(unknown)}")
 
     def _analyze(self, text: str):
         return self.analyzer.analyze(
