@@ -1,11 +1,14 @@
 """
 Optional comparison: what NVIDIA GLiNER-PII would mask in the same text.
 
-Runs on this machine, never through NVIDIA's hosted API, which would send the
-raw PII out. It is shown beside the real result only: nothing here changes what
-reaches the LLM. Needs requirements-gliner.txt and ENABLE_GLINER=true.
+Runs on this machine (requirements-gliner.txt and ENABLE_GLINER=true) or in our
+own Cloud Run service (GLINER_URL, see gliner_service/), never through NVIDIA's
+hosted API. It is shown beside the real result only: nothing here changes what
+reaches the LLM.
 """
 import re
+
+import httpx
 
 from .detector import Finding
 from .recognizers import verhoeff_valid
@@ -13,6 +16,7 @@ from .tokenizer import Vault, tokenize
 
 MODEL = "nvidia/gliner-pii"
 THRESHOLD = 0.5  # same as score_threshold in policy.yaml
+REMOTE_TIMEOUT_S = 20  # the demo's Output panel waits for this one
 
 # Label the model is asked for -> placeholder type, matching ours where one exists.
 LABELS = {
@@ -48,8 +52,23 @@ def entity_type(label: str, value: str) -> str:
     return LABELS[label]
 
 
+class RemoteModel:
+    """The model in our Cloud Run service, called like the local one."""
+    def __init__(self, url: str):
+        self.url = url.rstrip("/")
+
+    def predict_entities(self, text: str, labels: list[str], threshold: float) -> list[dict]:
+        r = httpx.post(f"{self.url}/detect", timeout=REMOTE_TIMEOUT_S,
+                       json={"text": text, "labels": labels, "threshold": threshold})
+        r.raise_for_status()
+        return r.json()
+
+
 class GlinerDetector:
-    def __init__(self):
+    def __init__(self, url: str | None = None):
+        if url:
+            self.model = RemoteModel(url)
+            return
         from gliner import GLiNER  # imported here so the normal install doesn't need it
         self.model = GLiNER.from_pretrained(MODEL)
 

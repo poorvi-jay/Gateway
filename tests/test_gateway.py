@@ -18,7 +18,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 import app.main as gw  # noqa: E402
 from app.detector import Finding, _finding  # noqa: E402
-from app.gliner_compare import entity_type  # noqa: E402
+from app.gliner_compare import GlinerDetector, entity_type  # noqa: E402
 from app.policy import Policy, load_policy  # noqa: E402
 from app.recognizers import verhoeff_valid  # noqa: E402
 from app.sanitizer import sanitize_request  # noqa: E402
@@ -185,6 +185,37 @@ def test_gliner_comparison_masks_text_and_never_calls_llm(client, fake_llm, monk
     data = client.post("/debug/gliner", json=body).json()
     assert data["masked"] == "Call <PERSON_1>" and data["entity_types"] == ["PERSON"]
     assert "payload" not in fake_llm
+
+
+def test_gliner_service_result_masks_text(client, monkeypatch):
+    request = httpx.Request("POST", "https://gliner.test/detect")
+    answer = [{"label": "person", "start": 5, "end": 10, "score": 0.9}]
+    monkeypatch.setattr(httpx, "post",
+                        lambda *a, **k: httpx.Response(200, json=answer, request=request))
+    monkeypatch.setattr(client.app.state, "gliner", GlinerDetector("https://gliner.test/"),
+                        raising=False)  # an earlier monkeypatch's undo removes the attribute
+    body = {"messages": [{"role": "user", "content": "Call Rahul"}]}
+    assert client.post("/debug/gliner", json=body).json()["masked"] == "Call <PERSON_1>"
+
+
+@pytest.mark.parametrize("reply", [
+    httpx.Response(200, text="<html>Service unavailable</html>"),
+    httpx.Response(503),
+    httpx.ConnectTimeout("no answer"),
+])
+def test_gliner_service_failure_is_a_clean_503(client, monkeypatch, reply):
+    def post(*args, **kwargs):
+        if isinstance(reply, Exception):
+            raise reply
+        reply.request = httpx.Request("POST", "https://gliner.test/detect")
+        return reply
+
+    monkeypatch.setattr(httpx, "post", post)
+    monkeypatch.setattr(client.app.state, "gliner", GlinerDetector("https://gliner.test"),
+                        raising=False)
+    body = {"messages": [{"role": "user", "content": "Call Rahul"}]}
+    r = client.post("/debug/gliner", json=body)
+    assert r.status_code == 503 and r.json()["error"]["code"] == "gliner_unavailable"
 
 
 def test_unknown_policy_action_refuses_to_start(tmp_path):

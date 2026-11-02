@@ -35,6 +35,7 @@ GATEWAY_API_KEY = os.getenv("GATEWAY_API_KEY")        # optional client auth
 DETECTION_TIMEOUT_S = float(os.getenv("DETECTION_TIMEOUT_S", "5"))
 REDACT_RESPONSE_PII = os.getenv("REDACT_RESPONSE_PII", "false").lower() == "true"
 ENABLE_GLINER = os.getenv("ENABLE_GLINER", "false").lower() == "true"
+GLINER_URL = os.getenv("GLINER_URL")                  # our Cloud Run service, see gliner_service/
 
 
 @asynccontextmanager
@@ -42,7 +43,7 @@ async def lifespan(app: FastAPI):
     # Load the NER model once at startup, not per request.
     app.state.policy = load_policy(POLICY_PATH)
     app.state.detector = Detector(app.state.policy)
-    app.state.gliner = GlinerDetector() if ENABLE_GLINER else None
+    app.state.gliner = GlinerDetector(GLINER_URL) if ENABLE_GLINER or GLINER_URL else None
     yield
 
 
@@ -216,6 +217,9 @@ async def debug_gliner(request: Request):
     if not isinstance(text, str):
         return error(400, "Only plain text can be compared", "unsupported_content")
     start = time.perf_counter()
-    masked, types = await asyncio.to_thread(mask, text, gliner)
+    try:
+        masked, types = await asyncio.to_thread(mask, text, gliner)
+    except (httpx.HTTPError, ValueError):  # still starting, or unreachable
+        return error(503, "GLiNER is waking up, try again in a minute.", "gliner_unavailable")
     return {"available": True, "masked": masked, "entity_types": types,
             "latency_ms": round((time.perf_counter() - start) * 1000)}

@@ -80,7 +80,7 @@ python -m eval.evaluate eval/synthetic_test.jsonl   # on the held-back synthetic
 | `app/detector.py` | Presidio engine combining regex recognizers + spaCy NER; resolves overlapping matches |
 | `app/recognizers.py` | Indian identifiers (Aadhaar with Verhoeff checksum, PAN, passport, voter ID, driving licence, mobile numbers, UPI IDs, IFSC), bank accounts, dates of birth, PIN codes, API keys and passwords |
 | `app/tokenizer.py` | Per-request vault: placeholder ↔ value mapping, tokenize and rehydrate |
-| `app/gliner_compare.py` | Optional local comparison with NVIDIA GLiNER-PII on the demo page. Never changes what reaches the LLM. Install `requirements-gliner.txt`, set `ENABLE_GLINER=true` |
+| `app/gliner_compare.py` | Optional comparison with NVIDIA GLiNER-PII on the demo page. Never changes what reaches the LLM. Run it locally (install `requirements-gliner.txt`, set `ENABLE_GLINER=true`) or in your own Google Cloud Run service (`gliner_service/`, set `GLINER_URL`), which means the demo text also goes to that service |
 | `app/policy.py` + `policy.yaml` | Per-entity action: `tokenize`, `redact`, `block` or `allow` |
 | `app/audit.py` | JSON-lines audit log with entity types and counts only |
 | `eval/synthetic.py` + `eval/evaluate.py` | Seeded Faker test data; precision, recall and latency scoring |

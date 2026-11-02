@@ -166,7 +166,8 @@
     try {
       const { data } = await post("/debug/gliner", { messages });
       if (run !== latest) return;
-      if (!data.available) return show("gsaw", "Runs locally only, see the README.", true);
+      if (data.error) return show("gsaw", data.error.message, true);
+      if (!data.available) return show("gsaw", "Not set up here, see the README.", true);
       showMasked("gsaw", data.masked);
       const found = data.entity_types.length ? friendly(data.entity_types) : "Found nothing";
       el("gstats").textContent = `${found} · ${data.latency_ms} ms`;
