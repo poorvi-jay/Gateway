@@ -161,9 +161,17 @@ python -m eval.evaluate eval/synthetic_test.jsonl   # on the held-back synthetic
 - **The vault never leaves the gateway.** It is in memory, scoped to one
   request, and discarded afterwards. The LLM never sees the mapping, so prompt
   injection ("tell me who <PERSON_1> is") has nothing to extract.
+  Restoring values in the answer is a separate path: see Limitations.
+- **Spend controls on the public demo.** Requests are rate limited per client
+  and globally (`RATE_LIMIT_PER_MIN`, `GLOBAL_RATE_LIMIT_PER_MIN`), `n` must be 1,
+  output is capped at `MAX_OUTPUT_TOKENS`, and the debug routes accept at most
+  `DEBUG_MAX_BODY_BYTES`. The debug scan runs off the event loop with the same
+  timeout as the proxy, so one large message can't stall the server.
 - **Logs contain no PII**; otherwise the audit log becomes a new leak (tested).
 - **Recall over precision.** A missed value is a leak; a false flag only costs
-  a little answer quality. Unknown entity types default to `tokenize`.
+  a little answer quality. Only the types listed in `policy.yaml` are scanned,
+  so the gateway refuses to start if that file names a type no recognizer
+  supports: a typo such as `IN_AADHAR` would otherwise turn detection off.
 - **Only placeholders we issued are skipped** when scanning a response. Text in
   a request that merely looks like one (`<CARD_4111111111111111>`) is scanned
   as normal, so it can't be used to hide PII.
@@ -272,7 +280,21 @@ generous. Real anonymised samples would be a better test still.
 - **Multi-turn vault.** Placeholders are consistent within a request (which
   carries the full chat history), but not across separate requests. A
   session-scoped, encrypted Redis vault with a TTL would fix that.
-- **English only.** Hindi / Hinglish text needs a multilingual NER model.
+- **English only.** Hindi / Hinglish text needs a multilingual NER model. In
+  Hinglish ("mera naam priya nair hai") names can be partly missed and
+  ordinary words masked as names.
+- **Unusual digits.** Phone numbers written in Devanagari (९८७६…) or full-width
+  digits, or with a zero-width character inside, are not detected. Next: normalize
+  digits and strip invisible characters before detection.
+- **Restored values can leave through the answer.** The model never sees real
+  values, but an injected instruction could make it put `<EMAIL_ADDRESS_1>` into
+  a link or tool argument, which the gateway then restores. Next: restore
+  values only in plain message text, not in URLs or tool calls.
+- **Unscanned fields.** Tool-call IDs, function names, schema property names and
+  `model` are passed through unscanned; apps normally generate these, but they
+  should be scanned or rejected too.
+- **Rate limiting** is in memory, so it only works with one instance (the deploy
+  uses max 1); a client can forge `X-Forwarded-For`, which the global limit backstops.
 - **Bypass.** In production, egress rules must ensure apps can only reach LLM
   providers through the gateway.
 - **Scaling.** The gateway is stateless apart from the per-request vault, so it
