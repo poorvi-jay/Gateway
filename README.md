@@ -27,16 +27,26 @@ keeping the model's answers useful.
 
 ## Live demo
 
-**<https://pii-gateway-3f8e.onrender.com>**: type a message, or pick a sample, and
-see the four stages side by side. Please don't enter real personal data.
+**<https://pii-gateway-240717449726.us-central1.run.app>**: type a message, or pick a
+sample, and see the four stages side by side. Please don't enter real personal data.
 
-- The gateway runs on Render's free plan with a real LLM (`gpt-4o-mini`). It sleeps
-  when idle, so the first visit can take about a minute.
-- It uses the small `en_core_web_sm` model to fit in 512 MB, so its results can differ
-  a little from a local install with `en_core_web_lg` (see Evaluation for both).
-- The GLiNER panel calls `gliner_service/` on Google Cloud Run, because the model
-  doesn't fit on that plan. That demo text also goes to that service, which keeps
-  nothing. It sleeps too, so the first message may show "GLiNER is waking up".
+- The gateway runs on Google Cloud Run with a real LLM (`gpt-4o-mini`) and the same
+  `en_core_web_lg` model as a local install. It sleeps when idle, so the first visit
+  can be slow.
+- The GLiNER panel calls `gliner_service/`, a separate Cloud Run service, because that
+  model needs 8 GB. Demo text that passes the policy also goes to that service, which
+  keeps nothing; blocked text doesn't. It sleeps too, so the first message may show
+  "GLiNER is waking up".
+
+To deploy the gateway, with its secrets in Secret Manager (see `gliner_service/README.md`
+for the GLiNER service):
+
+```bash
+gcloud run deploy pii-gateway --source . --region us-central1 --memory 2Gi --cpu 1 \
+  --max-instances 1 --allow-unauthenticated \
+  --update-secrets=UPSTREAM_API_KEY=openai-key:1,GLINER_TOKEN=gliner-token:1 \
+  --set-env-vars=UPSTREAM_BASE_URL=https://api.openai.com/v1,UPSTREAM_MODEL=gpt-4o-mini,ENABLE_DEBUG=true,DETECTION_TIMEOUT_S=15,AUDIT_LOG_PATH=/dev/stdout,GLINER_URL=<your GLiNER service URL>
+```
 
 ---
 
@@ -188,8 +198,11 @@ On the test set with `en_core_web_lg`:
 - **Mistyped IDs are not in these sets.** A manual test found "my aadhar is
   987654321013", one digit off, going out unmasked because a failed checksum
   discarded the match. Aadhaar, card and PAN near-misses are now caught when a word
-  like "aadhaar" is nearby. All sets were rescored after that fix and did not change,
-  so these numbers neither show the leak nor prove the fix; tests cover it instead.
+  like "aadhaar" or "card" is nearby: an impossible first digit, dots between the
+  groups, or 10 to 14 digits for Aadhaar (12 to 19 for cards). All sets were rescored
+  after those fixes and did not change, so these numbers neither show the leak nor
+  prove the fix; tests cover it instead. The cost is that a phone number right beside
+  the word "aadhaar" is redacted rather than masked, so it doesn't come back.
 - **Names: 84%** (47/56). Misses are lone first names ("Xavier told Viraj") and
   lowercase names. Rules would mask too much here; this needs a better model.
 - **Landlines: 38%** (3/8). They are only found next to a word like "landline" or
@@ -247,7 +260,9 @@ generous. Real anonymised samples would be a better test still.
   name words in any case would mask "will" for Will Smith. Two capitalized words
   are masked as a name, so a title like "Quarterly Review" can be masked too.
 - **Context words.** A voter ID or landline with no word like "voter" or "phone"
-  nearby is not flagged, and a phrase like "the secret is out" is masked as a
+  nearby is not flagged, nor is a mistyped Aadhaar with no word like "aadhaar". A
+  10-digit "card" number looks like a phone number and is treated as one. Details
+  spelled out ("rahul dot s at gmail dot com") are not caught, and a phrase like "the secret is out" is masked as a
   password. Addresses are covered only as place names and PIN codes, and
   pre-2019 licence formats vary by state.
 - **A better model.** The GLiNER numbers above suggest a label-conditioned model is

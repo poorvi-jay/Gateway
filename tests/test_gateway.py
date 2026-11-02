@@ -111,6 +111,8 @@ def test_clean_text_unchanged(client, fake_llm):
 @pytest.mark.parametrize("text,entity", [
     ("Charge card 4111 1111 1111 1111", "CREDIT_CARD"),
     ("Mistyped card number 4111 1111 1111 1112", "CREDIT_CARD"),
+    ("card 4111.1111.1111.1111", "CREDIT_CARD"),
+    ("debit card 411111111111", "CREDIT_CARD"),  # a few digits dropped
 ])
 def test_sensitive_ids_are_blocked(client, fake_llm, text, entity):
     r = chat(client, text)
@@ -124,6 +126,11 @@ def test_sensitive_ids_are_blocked(client, fake_llm, text, entity):
     (f"My Aadhaar is {VALID_AADHAAR}", VALID_AADHAAR, "IN_AADHAAR"),
     ("my aadhar is 987654321013", "987654321013", "IN_AADHAAR"),  # fails the checksum
     ("email and aadhar 129876543210.", "129876543210", "IN_AADHAAR"),  # impossible first digit
+    ("aadhaar no 12987654321", "12987654321", "IN_AADHAAR"),      # a digit dropped
+    ("aadhaar no 1298765432101", "1298765432101", "IN_AADHAAR"),  # a digit added
+    ("aadhaar 4987.1234.5679", "4987.1234.5679", "IN_AADHAAR"),   # dots
+    ("adhaar 129876543210", "129876543210", "IN_AADHAAR"),        # misspelt context word
+    ("aadhar card 129876543210", "129876543210", "IN_AADHAAR"),   # "card" must not block it
     ("PAN: ABCPE1234F", "ABCPE1234F", "IN_PAN"),
     ("My PAN is ABCXX1234F", "ABCXX1234F", "IN_PAN"),             # invalid fourth letter
     ("Driving licence MH12 20110012345", "MH12 20110012345", "IN_DRIVING_LICENCE"),
@@ -374,6 +381,15 @@ def test_random_12_digits_not_aadhaar(client, fake_llm):
     assert not verhoeff_valid("234123412345")
     r = chat(client, "Order 2341 2341 2345 has shipped")
     assert r.status_code == 200
+
+
+@pytest.mark.parametrize("text", [
+    "my card is lost, call 9876543210",   # a phone number near "card" isn't a card
+    "Reference 2024-01-15 10 has shipped",
+])
+def test_loose_id_patterns_leave_other_numbers_alone(client, text):
+    types = [f.entity_type for f in client.app.state.detector.detect(text)]
+    assert "CREDIT_CARD" not in types and "IN_AADHAAR" not in types
 
 
 def test_checksum_alone_cant_make_an_aadhaar_of_first_digit_1(client):

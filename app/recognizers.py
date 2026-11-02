@@ -7,8 +7,14 @@ regex (fast, deterministic) plus, where the format allows it, a checksum
 validator that rejects random numbers that merely *look* like the identifier.
 Presidio compiles these case-insensitively.
 """
+import re
+
 from presidio_analyzer import Pattern, PatternRecognizer
 from presidio_analyzer.predefined_recognizers import CreditCardRecognizer
+
+# A digit, then {}-{} more, each optionally after a space, dot or hyphen.
+_LOOSE_DIGITS = r"(?<![\d+])\d(?:[\s.-]?\d){{{},{}}}(?!\d)"
+_AADHAAR_SHAPE = re.compile(r"\d{4}[\s.-]?\d{4}[\s.-]?\d{4}")
 
 # ---------------------------------------------------------------------------
 # Verhoeff checksum (used by Aadhaar). Tables are the standard dihedral-group
@@ -47,27 +53,23 @@ def verhoeff_valid(number: str) -> bool:
 
 
 class AadhaarRecognizer(PatternRecognizer):
-    """12 digits, optional spaces/hyphens in 4-4-4 groups. First digit 2-9 and a
-    valid Verhoeff check digit are enough on their own. Anything else still counts
-    next to a word like "aadhaar": a mistyped real number is still mostly real."""
+    """12 digits in 4-4-4 groups, first digit 2-9, with a valid Verhoeff check digit
+    is enough on its own. Anything else from 10 to 14 digits still counts next to a
+    word like "aadhaar": a mistyped real number is still mostly real."""
 
     def __init__(self):
         super().__init__(
             supported_entity="IN_AADHAAR",
-            patterns=[
-                Pattern(
-                    "aadhaar",
-                    r"(?<!\d)\d{4}[\s-]?\d{4}[\s-]?\d{4}(?!\d)",
-                    NEEDS_CONTEXT,
-                )
-            ],
-            context=["aadhaar", "aadhar", "uid", "uidai"],
+            patterns=[Pattern("aadhaar", _LOOSE_DIGITS.format(9, 13), NEEDS_CONTEXT)],
+            context=["aadhaar", "aadhar", "adhaar", "adhar", "uid", "uidai"],
         )
 
     def validate_result(self, pattern_text: str):
         digits = "".join(ch for ch in pattern_text if ch.isdigit())
+        valid = (_AADHAAR_SHAPE.fullmatch(pattern_text) and digits[0] not in "01"
+                 and verhoeff_valid(digits))
         # True -> confidence raised to max; None -> left to context words
-        return True if digits[0] not in "01" and verhoeff_valid(digits) else None
+        return True if valid else None
 
 
 class CardRecognizer(CreditCardRecognizer):
@@ -221,6 +223,10 @@ def custom_recognizers():
         _pattern("IN_IFSC", r"\b[A-Z]{4}0[A-Z0-9]{6}\b", 0.6, ["ifsc", "bank", "branch"]),
         _pattern("BANK_ACCOUNT", r"\b\d{9,18}\b", NEEDS_CONTEXT,
                  ["account", "acct", "ac", "bank", "beneficiary", "ifsc"]),
+        # Odd separators or a digit dropped. From 12 digits, as 10 is a phone number
+        # near the word "card". Just under Aadhaar, as "aadhaar card" is common.
+        _pattern("CREDIT_CARD", _LOOSE_DIGITS.format(11, 18), NEEDS_CONTEXT - 0.01,
+                 ["card", "credit", "debit", "visa", "mastercard", "amex", "rupay"]),
         # "A/C" is split into separate tokens, so context words can't see it.
         _pattern("BANK_ACCOUNT", r"(?<=\ba/c\.?\s*(?:no\.?|number)?[\s:]*)\d{9,18}\b", 0.7),
         # "born" lemmatizes to "bear".
