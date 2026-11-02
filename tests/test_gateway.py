@@ -123,6 +123,7 @@ def test_sensitive_ids_are_blocked(client, fake_llm, text, entity):
 @pytest.mark.parametrize("text,value,entity", [
     (f"My Aadhaar is {VALID_AADHAAR}", VALID_AADHAAR, "IN_AADHAAR"),
     ("my aadhar is 987654321013", "987654321013", "IN_AADHAAR"),  # fails the checksum
+    ("email and aadhar 129876543210.", "129876543210", "IN_AADHAAR"),  # impossible first digit
     ("PAN: ABCPE1234F", "ABCPE1234F", "IN_PAN"),
     ("My PAN is ABCXX1234F", "ABCXX1234F", "IN_PAN"),             # invalid fourth letter
     ("Driving licence MH12 20110012345", "MH12 20110012345", "IN_DRIVING_LICENCE"),
@@ -295,6 +296,12 @@ def test_random_12_digits_not_aadhaar(client, fake_llm):
     assert not verhoeff_valid("234123412345")
     r = chat(client, "Order 2341 2341 2345 has shipped")
     assert r.status_code == 200
+
+
+def test_checksum_alone_cant_make_an_aadhaar_of_first_digit_1(client):
+    assert verhoeff_valid("123456789010")
+    findings = client.app.state.detector.detect("Order 123456789010 has shipped")
+    assert "IN_AADHAAR" not in [f.entity_type for f in findings]
 
 
 # ---------------------------------------------------------------- fail closed

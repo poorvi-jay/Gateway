@@ -47,8 +47,8 @@ def verhoeff_valid(number: str) -> bool:
 
 
 class AadhaarRecognizer(PatternRecognizer):
-    """12 digits, first digit 2-9, optional spaces/hyphens in 4-4-4 groups.
-    A valid Verhoeff check digit is enough on its own. A failed one still counts
+    """12 digits, optional spaces/hyphens in 4-4-4 groups. First digit 2-9 and a
+    valid Verhoeff check digit are enough on their own. Anything else still counts
     next to a word like "aadhaar": a mistyped real number is still mostly real."""
 
     def __init__(self):
@@ -57,7 +57,7 @@ class AadhaarRecognizer(PatternRecognizer):
             patterns=[
                 Pattern(
                     "aadhaar",
-                    r"(?<!\d)[2-9]\d{3}[\s-]?\d{4}[\s-]?\d{4}(?!\d)",
+                    r"(?<!\d)\d{4}[\s-]?\d{4}[\s-]?\d{4}(?!\d)",
                     NEEDS_CONTEXT,
                 )
             ],
@@ -67,7 +67,7 @@ class AadhaarRecognizer(PatternRecognizer):
     def validate_result(self, pattern_text: str):
         digits = "".join(ch for ch in pattern_text if ch.isdigit())
         # True -> confidence raised to max; None -> left to context words
-        return True if verhoeff_valid(digits) else None
+        return True if digits[0] not in "01" and verhoeff_valid(digits) else None
 
 
 class CardRecognizer(CreditCardRecognizer):
