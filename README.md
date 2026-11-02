@@ -239,8 +239,9 @@ generous. Real anonymised samples would be a better test still.
   fintech") contain no PII entity but can still identify someone. Detectors
   can't reliably catch this; it needs policy and user education.
 - **Images and files** are rejected. Next: OCR → same detection pipeline.
-- **Other top-level fields.** `messages`, `user` and `tools`/`functions` are
-  scanned; anything else, such as `metadata`, is forwarded as it is.
+- **Other request fields** are rejected with a 400 unless listed in
+  `app/sanitizer.py`, so a new provider field has to be added there before it works.
+  `metadata`, for example, is refused rather than forwarded unchecked.
 - **Names.** Lone first names and lowercase names can leak (see Evaluation). A
   lone "priya" in lowercase is masked only if NER finds it on its own: matching
   name words in any case would mask "will" for Will Smith. Two capitalized words

@@ -188,6 +188,84 @@ def test_gliner_comparison_masks_text_and_never_calls_llm(client, fake_llm, monk
     assert "payload" not in fake_llm
 
 
+@pytest.mark.parametrize("extra", [
+    {"metadata": {"customer": "rahul.s@gmail.com"}},
+    {"prediction": {"type": "content", "content": "rahul.s@gmail.com"}},
+])
+def test_fields_we_cant_inspect_are_rejected(client, fake_llm, extra):
+    r = chat(client, "hi", **extra)
+    assert r.status_code == 400 and r.json()["error"]["code"] == "unsupported_content"
+    assert "payload" not in fake_llm
+
+
+def test_unknown_message_field_is_rejected(client, fake_llm):
+    message = {"role": "user", "content": "hi", "note": "rahul.s@gmail.com"}
+    assert client.post(URL, json={"model": "x", "messages": [message]}).status_code == 400
+    assert "payload" not in fake_llm
+
+
+def test_empty_fields_echoed_by_sdks_are_fine(client, fake_llm):
+    message = {"role": "assistant", "content": "hi", "refusal": None, "annotations": []}
+    body = {"model": "x", "metadata": {}, "temperature": 0.2, "messages": [message]}
+    assert client.post(URL, json=body).status_code == 200
+
+
+def test_response_format_is_scanned(client, fake_llm):
+    schema = {"name": "x", "description": "for rahul.s@gmail.com"}
+    chat(client, "hi", response_format={"type": "json_schema", "json_schema": schema})
+    assert "rahul.s@gmail.com" not in json.dumps(fake_llm["payload"])
+    assert fake_llm["payload"]["response_format"]["json_schema"]["name"] == "x"
+
+
+def test_card_in_response_format_blocks(client, fake_llm):
+    schema = {"name": "x", "description": "card 4111 1111 1111 1111"}
+    r = chat(client, "hi", response_format={"type": "json_schema", "json_schema": schema})
+    assert r.status_code == 400 and r.json()["error"]["code"] == "pii_blocked"
+    assert "payload" not in fake_llm
+
+
+@pytest.mark.parametrize("extra", [{"stop": ["rahul.s@gmail.com"]},
+                                   {"tool_choice": {"type": "function",
+                                                    "function": {"name": "rahul.s@gmail.com"}}}])
+def test_stop_and_tool_choice_with_pii_are_rejected(client, fake_llm, extra):
+    assert chat(client, "hi", **extra).status_code == 400
+    assert "payload" not in fake_llm
+
+
+def test_stop_and_tool_choice_without_pii_pass(client, fake_llm):
+    assert chat(client, "hi", stop=["END"], tool_choice="auto").status_code == 200
+
+
+def test_oversized_body_is_rejected(client, fake_llm):
+    assert chat(client, "hi " * 70_000).status_code == 400
+    assert "payload" not in fake_llm
+
+
+def test_blocked_text_never_leaves_for_remote_gliner(client, monkeypatch):
+    def post(*args, **kwargs):
+        raise AssertionError("blocked text left the gateway")
+
+    monkeypatch.setattr(httpx, "post", post)
+    monkeypatch.setattr(gw, "GLINER_URL", "https://gliner.test")
+    monkeypatch.setattr(client.app.state, "gliner", GlinerDetector("https://gliner.test"),
+                        raising=False)
+    body = {"messages": [{"role": "user", "content": "Charge card 4111 1111 1111 1111"}]}
+    assert client.post("/debug/gliner", json=body).json() == {"available": True, "blocked": True}
+
+
+def test_remote_gliner_gets_the_shared_token(monkeypatch):
+    seen = {}
+
+    def post(url, **kwargs):
+        seen.update(kwargs["headers"])
+        return httpx.Response(200, json=[], request=httpx.Request("POST", url))
+
+    monkeypatch.setattr(httpx, "post", post)
+    monkeypatch.setenv("GLINER_TOKEN", "shared")
+    GlinerDetector("https://gliner.test").detect("hi")
+    assert seen["Authorization"] == "Bearer shared"
+
+
 def test_gliner_service_result_masks_text(client, monkeypatch):
     request = httpx.Request("POST", "https://gliner.test/detect")
     answer = [{"label": "person", "start": 5, "end": 10, "score": 0.9}]

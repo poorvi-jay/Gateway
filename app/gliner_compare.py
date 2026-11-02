@@ -6,6 +6,7 @@ own Cloud Run service (GLINER_URL, see gliner_service/), never through NVIDIA's
 hosted API. It is shown beside the real result only: nothing here changes what
 reaches the LLM.
 """
+import os
 import re
 
 import httpx
@@ -59,6 +60,7 @@ class RemoteModel:
 
     def predict_entities(self, text: str, labels: list[str], threshold: float) -> list[dict]:
         r = httpx.post(f"{self.url}/detect", timeout=REMOTE_TIMEOUT_S,
+                       headers={"Authorization": f"Bearer {os.getenv('GLINER_TOKEN', '')}"},
                        json={"text": text, "labels": labels, "threshold": threshold})
         r.raise_for_status()
         return r.json()

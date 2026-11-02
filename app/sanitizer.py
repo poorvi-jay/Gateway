@@ -9,6 +9,7 @@ naive filters miss.
 """
 import copy
 import hashlib
+import json
 import re
 from dataclasses import dataclass, field
 
@@ -20,6 +21,16 @@ from .tokenizer import Vault, rehydrate, repair, tokenize
 # JSON Schema and tool fields that are identifiers, not text. Changing them
 # would break the tool the model is asked to call.
 SCHEMA_KEYS = {"type", "name", "required", "$ref", "format", "pattern"}
+
+# The fields we know how to inspect. Anything else is rejected rather than
+# forwarded unchecked; add a field here only once its text is scanned or it has none.
+REQUEST_FIELDS = {
+    "messages", "user", "tools", "functions", "response_format", "tool_choice", "function_call",
+    "stop", "model", "stream", "temperature", "top_p", "n", "seed", "max_tokens",
+    "max_completion_tokens", "presence_penalty", "frequency_penalty", "logit_bias", "logprobs",
+    "top_logprobs", "parallel_tool_calls", "reasoning_effort",
+}
+MESSAGE_FIELDS = {"role", "content", "name", "tool_calls", "tool_call_id", "function_call"}
 
 # Words in a name that identify nobody on their own.
 TITLES = {"mrs", "shri", "smt", "sri", "prof"}
@@ -101,7 +112,7 @@ def _request_slots(payload: dict):
 
 
 def _tool_slots(payload: dict):
-    for key in ("tools", "functions"):  # functions: legacy API
+    for key in ("tools", "functions", "response_format"):  # functions: legacy API
         if payload.get(key) is not None:
             yield from _schema_slots(payload[key])
 
@@ -124,7 +135,22 @@ def _name_word_pattern(word: str) -> re.Pattern:
     return re.compile(rf"(?<!\w)(?:{re.escape(word)}|{re.escape(word.upper())})(?!\w)")
 
 
+def _reject_unknown_fields(payload: dict) -> None:
+    for fields, allowed in [(payload, REQUEST_FIELDS),
+                            *((m, MESSAGE_FIELDS) for m in payload.get("messages", []))]:
+        # Empty ones are fine: SDKs echo back "refusal": null and the like.
+        unknown = [k for k, v in fields.items() if k not in allowed and v not in (None, "", [], {})]
+        if unknown:
+            raise UnsupportedContent(f"field(s) {unknown} cannot be inspected for PII")
+
+
 def sanitize_request(payload: dict, detector: Detector, policy: Policy) -> SanitizeResult:
+    _reject_unknown_fields(payload)
+    # A placeholder here would change what they mean, so these must simply be clean.
+    for key in ("stop", "tool_choice", "function_call"):
+        if payload.get(key) is not None and detector.detect(json.dumps(payload[key])):
+            raise UnsupportedContent(f"{key} must not contain personal data")
+
     clean = copy.deepcopy(payload)  # never mutate the caller's object
     vault = Vault()
     to_block: set[str] = set()

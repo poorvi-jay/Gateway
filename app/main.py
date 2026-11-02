@@ -36,6 +36,7 @@ DETECTION_TIMEOUT_S = float(os.getenv("DETECTION_TIMEOUT_S", "5"))
 REDACT_RESPONSE_PII = os.getenv("REDACT_RESPONSE_PII", "false").lower() == "true"
 ENABLE_GLINER = os.getenv("ENABLE_GLINER", "false").lower() == "true"
 GLINER_URL = os.getenv("GLINER_URL")                  # our Cloud Run service, see gliner_service/
+MAX_BODY_BYTES = 200_000
 
 
 @asynccontextmanager
@@ -90,6 +91,8 @@ def check_auth(request: Request) -> bool:
 async def read_body(request: Request) -> dict | None:
     """The chat request as a dict, or None if it isn't one we can inspect."""
     try:
+        if len(await request.body()) > MAX_BODY_BYTES:
+            return None
         payload = await request.json()
     except Exception:
         return None
@@ -118,7 +121,7 @@ async def chat_completions(request: Request):
 
     payload = await read_body(request)
     if payload is None:
-        return error(400, "Body must be a JSON object with a messages list", "invalid_request")
+        return error(400, "Body must be a JSON object with a messages list, under 200 KB", "invalid_request")
 
     if payload.get("stream"):
         return error(400, "Streaming is not supported by this gateway yet", "unsupported")
@@ -187,7 +190,7 @@ async def debug_sanitize(request: Request):
         return error(401, "Invalid gateway API key", "unauthorized")
     payload = await read_body(request)
     if payload is None:
-        return error(400, "Body must be a JSON object with a messages list", "invalid_request")
+        return error(400, "Body must be a JSON object with a messages list, under 200 KB", "invalid_request")
     try:
         result = sanitize_request(payload, request.app.state.detector, request.app.state.policy)
     except BlockedRequest as e:
@@ -209,13 +212,23 @@ async def debug_gliner(request: Request):
         return error(401, "Invalid gateway API key", "unauthorized")
     payload = await read_body(request)
     if payload is None:
-        return error(400, "Body must be a JSON object with a messages list", "invalid_request")
+        return error(400, "Body must be a JSON object with a messages list, under 200 KB", "invalid_request")
     gliner = request.app.state.gliner
     if gliner is None:
         return {"available": False}
-    text = payload["messages"][-1].get("content")
+    text = (payload["messages"] or [{}])[-1].get("content")
     if not isinstance(text, str):
         return error(400, "Only plain text can be compared", "unsupported_content")
+    if GLINER_URL:  # this text leaves the gateway, so it must pass the policy first
+        try:
+            await asyncio.wait_for(
+                asyncio.to_thread(sanitize_request, payload, request.app.state.detector,
+                                  request.app.state.policy),
+                timeout=DETECTION_TIMEOUT_S)
+        except BlockedRequest:
+            return {"available": True, "blocked": True}
+        except Exception:
+            return error(503, "PII inspection failed; nothing was compared", "inspection_failed")
     start = time.perf_counter()
     try:
         masked, types = await asyncio.to_thread(mask, text, gliner)
