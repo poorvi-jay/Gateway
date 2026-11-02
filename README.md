@@ -25,6 +25,21 @@ keeping the model's answers useful.
 
 ---
 
+## Live demo
+
+**<https://pii-gateway-3f8e.onrender.com>**: type a message, or pick a sample, and
+see the four stages side by side. Please don't enter real personal data.
+
+- The gateway runs on Render's free plan with a real LLM (`gpt-4o-mini`). It sleeps
+  when idle, so the first visit can take about a minute.
+- It uses the small `en_core_web_sm` model to fit in 512 MB, so its results can differ
+  a little from a local install with `en_core_web_lg` (see Evaluation for both).
+- The GLiNER panel calls `gliner_service/` on Google Cloud Run, because the model
+  doesn't fit on that plan. That demo text also goes to that service, which keeps
+  nothing. It sleeps too, so the first message may show "GLiNER is waking up".
+
+---
+
 ## Quick start
 
 ```bash
@@ -36,9 +51,10 @@ cp .env.example .env                                  # defaults to offline "moc
 uvicorn app.main:app --port 8000 --env-file .env
 ```
 
-Try it in the browser at <http://localhost:8000>: type a message and see what
-your input, what our model sent to the LLM, what GLiNER would mask (when enabled) and the output. The page uses `/debug/sanitize`,
-so it needs `ENABLE_DEBUG=true`. Or from the command line:
+Try it in the browser at <http://localhost:8000>: type a message and see your
+input, what our model sent to the LLM, what GLiNER would mask (when enabled) and
+the output. The page uses `/debug/sanitize`, so it needs `ENABLE_DEBUG=true`. Or
+from the command line:
 
 ```bash
 # See exactly what the LLM would receive
